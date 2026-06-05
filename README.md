@@ -85,7 +85,7 @@ Maintaining and improving this tool takes time, effort, and resources. Donations
 
 Even small contributions mean a lot. Thank you for keeping this project alive and evolving! 🙏
 
-[![Donate](https://github.com/limbo666/DesktopFramesPlus/blob/main/Imgs/donate.png)](https://www.paypal.com/donate/?hosted_button_id=PPLWC66UC8Q42)
+[![Donate](https://raw.githubusercontent.com/limbo666/DesktopFramesPlus/refs/heads/main/Images/paypal.png)](https://www.paypal.com/donate/?hosted_button_id=PPLWC66UC8Q42)
 
 ---
 
