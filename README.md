@@ -46,8 +46,8 @@ This project is a continuation and substantial modification of the original Bird
 Desktop Frames+ has been significantly enhanced and optimized for improved performance, stability, and user experience, while respecting the terms of the original license and acknowledging the original author.
 
 
-
----
+##  Version History 
+you can find our list of changes here: https://github.com/limbo666/DesktopFramesPlus/blob/main/VersionHistory.md
 
 ##  Manual
 
