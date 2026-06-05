@@ -9,8 +9,9 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/limbo666/DesktopFramesPlus/blob/main/Imgs/Desktop_Frames_Social_Media_PNG.png" />
-  
+
+  <img width="150" height="150" alt="Desktop Frames150" src="https://github.com/user-attachments/assets/a88f7771-8ae8-4be8-86dc-4e8aabfa5a77" />
+
 </p>
 
 
@@ -377,7 +378,7 @@ _See (https://github.com/limbo666/DesktopFramesPlus/issues/51)_
 
 ---
 ## Stargazers over time
-[![Stargazers over time](https://starchart.cc/limbo666/DesktopFrames.svg?background=%23535050&axis=%23f172cb&line=%239c34f7)](https://starchart.cc/limbo666/DesktopFrames)
+[![Stargazers over time](https://starchart.cc/limbo666/DesktopFramesPlus.svg?background=%23535050&axis=%23f172cb&line=%239c34f7)](https://starchart.cc/limbo666/DesktopFramesPlus)
 ---
 
 ##  License
