@@ -8,17 +8,17 @@ labels: report
 ---
 
 **⚠️ IMPORTANT:**
-For general questions or feature requests, please DO NOT open an issue. Use [Discussions](https://github.com/limbo666/DesktopFences/discussions) instead.
+For general questions or feature requests, please DO NOT open an issue. Use [Discussions](https://github.com/limbo666/DesktopFramesPlus/discussions) instead.
 
 ---
 
 **System Information (Required):**
- - **DesktopFences Version:** [e.g. 2.5.1.30]
+ - **Desktop Frames + Version:** [e.g. 2.7.7.268]
  - **Windows Version:** [e.g. Windows 11 22H2]
- - **Installation Path:** [e.g. C:\Tools\DesktopFences+]
+ - **Installation Path:** [e.g. C:\Tools\DesktopFrames+]
 
 **Describe the Bug:**
-A clear and concise description of what the bug is.
+
 
 **To Reproduce:**
 Steps to reproduce the behavior:
