@@ -2,10 +2,10 @@
 <p align="center"><i>Organize your desktop like magic!</i></p>
 <p align="center">
 <img src="https://img.shields.io/github/downloads/limbo666/DesktopFramesPlus/total?style=flat-square" alt="Total Downloads"/>
-<img src="https://img.shields.io/github/stars/limbo666/DesktopFrames?style=flat-square" alt="Stars"/>
-  <img src="https://img.shields.io/github/forks/limbo666/DesktopFrames?style=flat-square" alt="Forks"/>
-  <img src="https://img.shields.io/github/issues/limbo666/DesktopFrames?style=flat-square" alt="Issues"/>
-   <img src="https://img.shields.io/github/last-commit/limbo666/DesktopFrames?style=flat-square" alt="Last Commit"/>
+<img src="https://img.shields.io/github/stars/limbo666/DesktopFramesPlus?style=flat-square" alt="Stars"/>
+  <img src="https://img.shields.io/github/forks/limbo666/DesktopFramesPlus?style=flat-square" alt="Forks"/>
+  <img src="https://img.shields.io/github/issues/limbo666/DesktopFramesPlus?style=flat-square" alt="Issues"/>
+   <img src="https://img.shields.io/github/last-commit/limbo666/DesktopFramesPlus?style=flat-square" alt="Last Commit"/>
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@ Desktop Frames+ has been significantly enhanced and optimized for improved perfo
 
 ##  Manual
 
-**$\color{red}{\text{A simple how to use guide is located here:}}$** https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_Frames_simple_manual.md
+**$\color{red}{\text{A simple how to use guide is located here:}}$** [https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_Frames_simple_manual.md](https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_frames_simple_manual.md)
 
 
 ##  TIPS 
