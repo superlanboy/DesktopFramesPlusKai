@@ -72,13 +72,13 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **More options**
   
   ## First release changes 🔥
-- **Fence JSON File** now placed in the same directory as the executable
-- **First Fence Line** is created automatically during the first execution
+- **frame JSON File** now placed in the same directory as the executable
+- **First frame Line** is created automatically during the first execution
 - **Program Icon** added
 - **Error Handlers** for Move actions, Program execution, Empty or invalid JSON files
 - **Tray Icon** indicates the application is running
 - **Program Exit Option** in the tray icon’s context menu
-- **New Fence Creation** at mouse location for intuitive placement
+- **New frame Creation** at mouse location for intuitive placement
 - **About Screen**
 - **Shortcuts no longer depend** on original shortcut files
 - **Execution Arguments** of original shortcuts are preserved
@@ -97,19 +97,19 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Run at Windows Startup** option
 
 ## 2.5.0.18
-- **Added**: Custom animation selection for each fence
-- **Added**: Custom background color selection for each fence
-- **Fixed**: 🐛 Bug on fence movement across multiscreen systems (https://github.com/limbo666/DesktopFramesPlus/issues/2)
+- **Added**: Custom animation selection for each frame
+- **Added**: Custom background color selection for each frame
+- **Fixed**: 🐛 Bug on frame movement across multiscreen systems (https://github.com/limbo666/DesktopFramesPlus/issues/2)
 - **Changed**: Start with windows option moved under `Options` window
 - **Fixed**: Passing argument in `Run as administrator` selection
 - **Fixed**: 🐛 Bug on portal Frames causing program crash on startup when target folder is missing
 - **Changed**: Code improvements on log function
-- **Added**: Basic `Hide` function for each fence
+- **Added**: Basic `Hide` function for each frame
 
 ## 2.5.0.23
 - **Added**: ❤️ Heart menu to separate right click menu item on Frames
-- **Added**: Function to undo fence deletion (Restore fence)
-- **Fixed**: 🐛 Bug on fence removal causing program to crash
+- **Added**: Function to undo frame deletion (Restore frame)
+- **Fixed**: 🐛 Bug on frame removal causing program to crash
 - **Changed**: Lot of menus, descriptions, and other visual elements changed.
 - **Added**: Number overlay on tray icon that indicates number of the hidden Frames
 
@@ -119,7 +119,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Added**: More launch effects (I ♥ Elastic)
 - **Fixed**: 🐛 Bug on context menus items unchecking behavior
 - **Fixed**: 🐛 Bug on customization where changes were not applied into Frames under same name
-- **Added**: Random name generator for new Frames instead of the dull "New Fence"
+- **Added**: Random name generator for new Frames instead of the dull "New frame"
 - **Added**: Custom delete confirmation message box
 
 ## 2.5.0.30
@@ -131,7 +131,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 
 ## 2.5.1.37 - Release 3
 - **Added**: Snap to Dimension function for better size alignment
-- **Added**: Export Fence and Import Fence options to help move Frames across systems. Few exported Frames can be found [here](https://github.com/limbo666/DesktopFramesPlus/tree/main/Exported%20Frames)
+- **Added**: Export frame and Import frame options to help move Frames across systems. Few exported Frames can be found [here](https://github.com/limbo666/DesktopFramesPlus/tree/main/Exported%20Frames)
 - **Added**: Ability to get icons from dll libraries or executables on under `Edit` Requested on https://github.com/limbo666/DesktopFramesPlus/issues/1
 - **Changed**: All message boxes changed to internal themed ones to follow mouse position across multimonitor systems
 - **Changed**: Some theming correction on message boxes.
@@ -144,7 +144,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 
 ## 2.5.1.42
 - **Fixed**: 🐛 Bug on `Portal Frames` created by misuse of FileSystemWatcher. The program now updates target files as renamed, removed. https://github.com/limbo666/DesktopFramesPlus/issues/3
-- **Added**: Context menu items for `Portal Frames` and items. Now user is able to copy target file path or shortcut destination path and open `Portal Fence` target folder from right click.
+- **Added**: Context menu items for `Portal Frames` and items. Now user is able to copy target file path or shortcut destination path and open `Portal frame` target folder from right click.
 
 ## 2.5.1.58 Release 6
 - **Added**: Option to show/hide tray icon (requested on https://github.com/limbo666/DesktopFramesPlus/issues/9). Attention: Hiding tray icon means you don't have access to: showing hidden Frames and hiding/showing Frames by double clicking on tray icon.
@@ -157,18 +157,18 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Added**: "Peek Behind" right click selection to make Frames to reveal desktop contents behind them for 10 seconds.
 
 ## 2.5.1.64
-- **Added**: Rollup function when `Ctrl + Click` on Fence title (📝 Use CTRL + click).
+- **Added**: Rollup function when `Ctrl + Click` on frame title (📝 Use CTRL + click).
 - **Added**: Function to filter hidden files on Portal Frames (request https://github.com/limbo666/DesktopFramesPlus/issues/13 and possibly fixing https://github.com/limbo666/DesktopFramesPlus/issues/14 as well).
 
 ## 2.5.1.65
-- **Changed**: `Delete Fence` option moved to Heart context menu
+- **Changed**: `Delete frame` option moved to Heart context menu
 - **Fixed**: 🐛 Bug on handling shortcuts targeting web links.
 - **Added**: New icon for shortcuts targeting web links.
 - **Changed**: Target check mechanism to prevent errors.
 - **Added**: Indicator for network based files.
 
 ## 2.5.1.67
-- **Added**: Function to re-order icons within a fence (https://github.com/limbo666/DesktopFramesPlus/issues/15). 📝 Use `CTRL + drag`.
+- **Added**: Function to re-order icons within a frame (https://github.com/limbo666/DesktopFramesPlus/issues/15). 📝 Use `CTRL + drag`.
 
 ## 2.5.1.70
 - **Changed**: 🔨🔩🔧 Major code refactoring.
@@ -186,7 +186,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 ## 2.5.2.86
 - **Changed**: Major changes to existing windows messages and other forms.
 - **Changed**: 🔨🔩🔧 Another massive source code refactoring.
-- **Added**: Customize window, available on fence context menu of each fence that allow user to tweak all available options.
+- **Added**: Customize window, available on frame context menu of each frame that allow user to tweak all available options.
 - **Removed**: ❌ Customization submenus for effects and colors from context menu.
 - **Fixed**: 🐛 Bug on Unicode folder icon.
 
@@ -195,7 +195,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 
 ## 2.5.2.111 Release 7
 - **Added**: Program made single instance (with a twist 😃).
-- **Added**: "Clear Dead Shortcuts" right click option to remove all not valid shortcuts from a fence.
+- **Added**: "Clear Dead Shortcuts" right click option to remove all not valid shortcuts from a frame.
 - **Added**: "Send To Desktop" right click option to copy a shortcut to desktop (📝 Use CTRL + right click).
 - **Added**: "Copy and Paste" options to copy items across Frames.
 - **Fixed**: 🐛 All forms were redesigned and made dpi aware to work under monitors with scaling enabled.
@@ -203,7 +203,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Added**: Variables can be set on `options.json` to manual tweak program. 🐉 See [tweaks](https://github.com/limbo666/DesktopFramesPlus/blob/main/tweaks.md).
 - **Changed**: Target launch mechanism. This probably will fix most common launch errors. https://github.com/limbo666/DesktopFramesPlus/issues/24
 - **Changed**: 🔨🔩🔧 Another source code refactoring.
-- **Added**: Option to disable Fence scrollbars. https://github.com/limbo666/DesktopFramesPlus/issues/21
+- **Added**: Option to disable frame scrollbars. https://github.com/limbo666/DesktopFramesPlus/issues/21
 - **Fixed**: 🪲 🐛 Edit icon panel. Now arguments editing, icon preview, restore default settings bugs are eliminated.
 
 ## 2.5.2.125
@@ -215,7 +215,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Added**: Option to set shortcut to "Always run as administrator".
 - **Added**: Option to disable sound globally. 🔇 Requested on https://github.com/limbo666/DesktopFramesPlus/issues/40.
 - **Added**: 🎇 Note Frames (still a bit buggy but working).
-- **Changed**: Double click on fence title scrolls up/down. Ctrl + Click enters rename mode. Requested on https://github.com/limbo666/DesktopFramesPlus/issues/38.
+- **Changed**: Double click on frame title scrolls up/down. Ctrl + Click enters rename mode. Requested on https://github.com/limbo666/DesktopFramesPlus/issues/38.
 
 ## 2.5.3.135
 - **Fixed**: 🐛 Frames now are escaping the Windows Snap Assistant. https://github.com/limbo666/DesktopFramesPlus/issues/39
@@ -226,27 +226,27 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Fixed**: 🐛 Failed to save new name bug. https://github.com/limbo666/DesktopFramesPlus/issues/45
 - **Added**: Basic support for MS store based apps. This is a bare minimum implementation, no shortcut icon customization support. 🐞 Bugs expected to be found on this. https://github.com/limbo666/DesktopFramesPlus/issues/34
 - **Fixed**: 🐛 Bug with program stability. Caused by icon updates and introduced during code migration.
-- **Fixed**: 🐛 Bug with lost context menu on fence customization and dead shortcut cleanup. https://github.com/limbo666/DesktopFramesPlus/issues/27
+- **Fixed**: 🐛 Bug with lost context menu on frame customization and dead shortcut cleanup. https://github.com/limbo666/DesktopFramesPlus/issues/27
 - **Added**: ✨🔎📣 Search pane "SpotSearch" to search and quick launch shortcuts in all data Frames. 🔥📝 Use hotkey ``CTRL+` ``
 - **Changed**: 🔩 Some code refactoring.
 
 ## 2.5.3.137 Release 8
 - **Added**: ☑️ Update checker engine
 - **Fixed**: 🐛 Missing functions from drop icon restored.
-- **Added**: ⚙️ Additional tweaks to automate icon extraction to desktop on fence deletion and icon removal from desktop on drop to Frames.
+- **Added**: ⚙️ Additional tweaks to automate icon extraction to desktop on frame deletion and icon removal from desktop on drop to Frames.
 
 ## 2.5.3.140
 - **Added**: ☑️ Tweak to select a key combination for SpotSearch (~, title, space, q, F1)
 
 ## 2.5.3.144
-- **Changed**: Initial startup values and Frames. Added a short Note fence on first start for user information.
-- **Fixed**: 🐛 Bug in the fence renaming escape mechanism.
+- **Changed**: Initial startup values and Frames. Added a short Note frame on first start for user information.
+- **Fixed**: 🐛 Bug in the frame renaming escape mechanism.
 - **Added**: ☑️ Tweak to show/hide file extensions on Portal Frames.
 - **Added**: ☑️ Filters for Portal Frames.
 
 ## 2.5.3.145
-- **Changed**: Portal Fence filters. Added predefined filters. Added a (hidden) option to disable wildcards.
-- **Added**: ☑️ Filter history for Portal Fence filters.
+- **Changed**: Portal frame filters. Added predefined filters. Added a (hidden) option to disable wildcards.
+- **Added**: ☑️ Filter history for Portal frame filters.
 - **Fixed**: 🐛 Bug in tint application.
 
 ## 2.5.3.155
@@ -255,7 +255,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Changed**: 🆒 Right-click menu items on Data Frames are now populated dynamically and displayed only when actions are available.
 - **Added**: ☑️ Ability for Portal Frames to display folders with their original customized icons.
 - **Added**: ☑️ Daily automatic backup functionality.
-- **Added**: ☑️ Cut and Copy options in the right-click menu for Portal Fence items.
+- **Added**: ☑️ Cut and Copy options in the right-click menu for Portal frame items.
 - **Added**: ☑️ Reset and Clear All Data buttons in Options.
 
 ## 2.5.4.161
@@ -303,7 +303,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Changed**: Support folders moved under profile name folder.
 - **Fixed**: 🐛 Bug for shortcuts displayed without their original icon.
 - **Fixed**: 🐛 Bug for powerpoint origin shorctuts.
-- **Added**: Resolution related techniques to restore fence position.
+- **Added**: Resolution related techniques to restore frame position.
 - **Added**: Manual tool to "Screen Bound Frames" available under "Options" > "Tools".
 - **Updated**: Backup/Restore engine to support profiles.
 
@@ -311,27 +311,27 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 - **Added**: ✔️ Support for shortcuts with target spotify (e.g. "spotify:search:rock").
 - **Added**: 👻 Auto hide Frames. All Frames can autohide after a user selectable period of time of inactivity.
 - **Added**: ⚡Run as different user and Always run as different options for shortcuts (available under icon's `CTRL + right click` menu).
-- **Fixed**: 🪲 Bug for fence not rolling down (https://github.com/limbo666/DesktopFramesPlus/issues/85).
+- **Fixed**: 🪲 Bug for frame not rolling down (https://github.com/limbo666/DesktopFramesPlus/issues/85).
 - **Fixed**: 🐜 Crash on tray double click (https://github.com/limbo666/DesktopFramesPlus/issues/75)).
-- **Added**:  🎈 Support for position blank spacers (available as option on `CTRL + right click` on any fence area).
-- **Added**: 🎈 Focus fence function (available either on tray menu or by pressing hotkey combination).
+- **Added**:  🎈 Support for position blank spacers (available as option on `CTRL + right click` on any frame area).
+- **Added**: 🎈 Focus frame function (available either on tray menu or by pressing hotkey combination).
 - **Improved**: Filter indicator icon on portal Frames follows fade logic of other indicators.
-- **Improved**: Portal Frames can be shorted by: Name, Date modified, Type, Size (cycle shorting method by `CTRL + Click` on any area on the portal fence).    
+- **Improved**: Portal Frames can be shorted by: Name, Date modified, Type, Size (cycle shorting method by `CTRL + Click` on any area on the portal frame).    
 - **Improved**: ☑️ Startup icons extraction proccess. The program now is significantly faster on startup.
-- **Added**: Icon indication effect when user tries to `CTRL + drag`, to re-arrange items order on the fence.
+- **Added**: Icon indication effect when user tries to `CTRL + drag`, to re-arrange items order on the frame.
 - **Fixed**: Bug on `Restore` function.
-- **Improved**: Fence and tab renaming function.
+- **Improved**: frame and tab renaming function.
 - **Fixed**: Disabling single instance bug. Now the program can be run as multi instance if needed by tweaking `options.json` file.
 - **Fixed**: Startup contents generation for `options.json` files.
 - **Improved**: File and folder paths are switched to relative to program location for safer operation and portability.
 - **Added**: ✅ Hotkey selection tab on option window. Hotkeys can be selected by user and settings are applied to all profiles. (Program restart required).
-- **Added**: ✅ Options to disable hotkeys for Profile switching, Focus fence and Spot Search.
+- **Added**: ✅ Options to disable hotkeys for Profile switching, Focus frame and Spot Search.
 - **Improved**: Icon load strategy adopting Lazy loader logic from https://github.com/SMSMy/DesktopFrames fork.
 - **Added**: 🦎 Chameleon mode for Frames color to match wallpaper major color.
 - **Added**: 💥 Smart Desktop engine, to move files to specific portal fneces or folders. Basic rules window and functionality.
 - **Fixed**: 🐛 Bug on Portal Frames navigation, where program denied navigation to subfolder with `CTRL + click`
 - **Fixed**: 🪲 Bug on first tab elements renaming.
-- **Fixed**: 🪲 Bug on export engine for fence names ending with dots or spaces.
+- **Fixed**: 🪲 Bug on export engine for frame names ending with dots or spaces.
 - **Fixed**: 🐛 Bug on size indicator for dimension snap.
 - Some other minor fixes.
 
