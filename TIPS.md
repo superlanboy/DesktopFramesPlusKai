@@ -1,7 +1,7 @@
 
-# Desktop Fences + | Tips & Tricks
+# Desktop Frames + | Tips & Tricks
 
-Welcome to the hidden features guide. This document highlights advanced functionality and "power-user" shortcuts to help you get the most out of Desktop Fences +.
+Welcome to the hidden features guide. This document highlights advanced functionality and "power-user" shortcuts to help you get the most out of Desktop Frames +.
 
 ---
 
@@ -13,7 +13,7 @@ The `CTRL` key acts as a "modifier" that reveals advanced context menus and shor
 * **Fence Icons Export:** `CTRL + Right Click` an empty area inside a fence to access hidden administrative tools (e.g., *Export all icons to desktop*).
 * **Portal Navigation:** `CTRL + Left Click` a folder inside a **Portal Fence** to navigate into that folder within the same fence, rather than opening a new Windows Explorer window.
 * **Portal Fence Naming:** `CTRL + Right Click` and select "Name Fence After Target Path" renames Portal Fence to target path.
-* **Adding Seperators (spacers) Data Fences:** `CTRL + Right Click` any area on a data fence and select "Add spacer" > "Blank" or "Dot" adds a spacer into the fence. You can move it by using `CTRL + Drag` to any place you like within the fence. (v2.6.5.222 and later)
+* **Adding Seperators (spacers) Data Frames:** `CTRL + Right Click` any area on a data fence and select "Add spacer" > "Blank" or "Dot" adds a spacer into the fence. You can move it by using `CTRL + Drag` to any place you like within the fence. (v2.6.5.222 and later)
 * **Export all shortcuts from a fence:** `CTRL + Right Click` any area on a data fence and select "Export all icons to desktop" 
 * **Export a single shortcut:** `CTRL + Right Click` an icon and select "Send to desktop"
 * **Run as different user:** `CTRL + Right Click` an icon and select "Run as a different user"  (v2.6.5.222 and later)
@@ -34,12 +34,12 @@ Click the **Filter Icon** (located next to the Lock icon) to toggle the filter b
 ---
 
 ## Spotseach
-Press spotsearch hotkey combination (default: `Ctrl + ~`) to see the search bar and search on the data fences icons (even the hidden ones)
+Press spotsearch hotkey combination (default: `Ctrl + ~`) to see the search bar and search on the data Frames icons (even the hidden ones)
 
 ---
 
-## Show fences above all open windows
-To quick show all fences above your open windows use `WIN + Shift + D` 
+## Show Frames above all open windows
+To quick show all Frames above your open windows use `WIN + Shift + D` 
 
 ---
 
@@ -60,7 +60,7 @@ Switching profiles can be done by selecting the appropriate profile name on tray
    - Profile manager can help you switch, arrange, delete and rename profiles.  
 
   Profile automation
-   - This is a sofisticated feature that can automaticaly make Desktop Fences switch profile according to a selected program activity. Select the window you want to detect on profile automation and create the rule you want.   
+   - This is a sofisticated feature that can automaticaly make Desktop Frames switch profile according to a selected program activity. Select the window you want to detect on profile automation and create the rule you want.   
    - Switch to the profile can be permanent or while the program is active.  
    - Profile automation can be turned off and on via tray menu or options window.  
   
@@ -82,7 +82,7 @@ For deeper customization, you can manually edit the `options.json` file. Below a
 | Variable | Description |
 | :--- | :--- |
 | `NoWildcardsOnPortalFilter` | Set to `true` to match text without needing `*`. (e.g., `.mp3` instead of `*.mp3`). |
-| `ShowPortalExtensions` | Set to `true` to display file extensions within Portal Fences. |
+| `ShowPortalExtensions` | Set to `true` to display file extensions within Portal Frames. |
 | `MaxDisplayNameLength` | Set the character limit for shortcut names (Range: `5` to `50`). |
 
 ### Workflow & Deletion
