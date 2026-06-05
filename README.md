@@ -17,9 +17,9 @@
 Desktop Frames + creates **virtual Frames** on your desktop, allowing you to group and organize icons in a clean and convenient way. With enhanced visual effects and right-click options, it aims to provide a more polished and customizable user interface.
 
 
-**Desktop Frames+** is an open-source alternative to Stardock Frames, originally created by HakanKokcu under the name BirdyFrames.
+**Desktop Frames+** is an open-source alternative to Stardock Frames, originally created by HakanKokcu under the name BirdyFences.
 
-This project is a continuation and substantial modification of the original BirdyFrames codebase, which was licensed under the MIT License at the time of forking. 
+This project is a continuation and substantial modification of the original BirdyFences codebase, which was licensed under the MIT License at the time of forking. 
 
 Desktop Frames+ has been significantly enhanced and optimized for improved performance, stability, and user experience, while respecting the terms of the original license and acknowledging the original author.
 
@@ -67,7 +67,7 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 
 ---
 
-## Features Compared to Original BirdyFrames
+## Features Compared to Original  
 - **Improved Performance and Stability**
 - **More options**
   
@@ -388,7 +388,7 @@ This project is licensed under the [MIT License](License.md).
 
 ##  Credits
 
-Based on the original **BirdyFrames** by HakanKokcu  
+Based on the original **BirdyFences** by HakanKokcu  
 Desktop Frames + is Enhanced and maintained by Nikos Georgousis. 
 Hand Water Pump 2025
 
