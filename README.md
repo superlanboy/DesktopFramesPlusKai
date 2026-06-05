@@ -17,7 +17,7 @@
 Desktop Frames + creates **virtual Frames** on your desktop, allowing you to group and organize icons in a clean and convenient way. With enhanced visual effects and right-click options, it aims to provide a more polished and customizable user interface.
 
 
-**Desktop Frames+** is an open-source alternative to Stardock Frames, originally created by HakanKokcu under the name BirdyFences.
+**Desktop Frames+** is an open-source desktop icon management software, originally created by HakanKokcu under the name BirdyFences.
 
 This project is a continuation and substantial modification of the original BirdyFences codebase, which was licensed under the MIT License at the time of forking. 
 
