@@ -21,7 +21,7 @@
 - **Right-Click Context Menu for Icons** with: Run as Administrator (when applicable), Copy Path, Find Target
 - **Folder Icon Appearance** fixed
 - **Broken Link Detection** on startup and updated every second
-- **Automatic JSON Format Updater** for existing Frames.json
+- **Automatic JSON Format Updater** for existing .json
 - **Frames No Longer Take Focus** from other windows when clicked
 - **Options Window** to: Enable/disable snap function, Set tint level, Select base color
 - **Options Saved** in `options.json`
@@ -109,7 +109,7 @@
 - **Added**: 🎇 Four new launch effects.
 
 ## 2.5.1.75
-- **Added**: Error Handles on JSON loading for better stability against corrupted `Frames.json` files
+- **Added**: Error Handles on JSON loading for better stability against corrupted `.json` files
 - **Changed**: Portal Frames are named after the target folder upon creation.
 - **Changed**: Minor interface improvements for systems with resolution scaling enabled.
 - **Fixed**: 🐛 Handling of shortcuts with unicode characters.
