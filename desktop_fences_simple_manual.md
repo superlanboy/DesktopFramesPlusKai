@@ -1,15 +1,15 @@
-# Desktop Fences + User Manual
+# Desktop Frames + User Manual
 
 
 <div style="width:20%; margin: auto;">
 
-![blackboard fences](https://github.com/limbo666/DesktopFences/blob/main/Imgs/Fence2.png) 
+
 </div>
 
 
 ## Overview
 
-Desktop Fences + is a powerful desktop organization tool that creates virtual "fences" on your desktop, allowing you to group and organize icons in a clean and convenient way. Think of fences as visible containers that help you organize your desktop shortcuts, files, and folders into logical groups.
+Desktop Frames + is a powerful desktop organization tool that creates virtual "Frames" on your desktop, allowing you to group and organize icons in a clean and convenient way. Think of Frames as visible containers that help you organize your desktop shortcuts, files, and folders into logical groups.
 
 ---
 
@@ -23,7 +23,7 @@ Desktop Fences + is a powerful desktop organization tool that creates virtual "f
 
 ### First Launch
 
-When you first start Desktop Fences +, the application will:
+When you first start Desktop Frames +, the application will:
 
 1. Create necessary basic configuration files
 2. Add itself to the system tray
@@ -32,27 +32,27 @@ When you first start Desktop Fences +, the application will:
 
 ## Core Features
 
-### 1. Creating Fences
+### 1. Creating Frames
 
-**What are Fences?**
-Fences are containers on your desktop that group related shortcuts and files together. You can think of them as boxes that keep your desktop organized.
+**What are Frames?**
+Frames are containers on your desktop that group related shortcuts and files together. You can think of them as boxes that keep your desktop organized.
 
 **Fence Types:**
 
-- **Fences (Data Fences)**: Regular containers for shortcuts targeting files or folders and web links
-- **Portal Fences**: Special fences mirroring the contents of folders
-- **Note Fences**: Fences that display text.
+- **Frames (Data Frames)**: Regular containers for shortcuts targeting files or folders and web links
+- **Portal Frames**: Special Frames mirroring the contents of folders
+- **Note Frames**: Frames that display text.
 
 **How to Create a Fence:**
 
-1. The first two fences are created automatically on first run. Look on the top left corner of your screen.
+1. The first two Frames are created automatically on first run. Look on the top left corner of your screen.
 2. From there clicking the heart menu you can select New Fence to create a new Fence, New Portal Fence to create a new Portal Fence or New Note Fence to crete a new note fence.
 
 **Rename a fence:**
 
 - ~~Double click~~ CTRL: + Click the fence title. Type your preferred name and click out of the edit area to finish. Changed on v2.5.2.125
 
-### 2. Adding Items to Fences
+### 2. Adding Items to Frames
 
 **Adding Shortcuts:**
 
@@ -66,7 +66,7 @@ Fences are containers on your desktop that group related shortcuts and files tog
 - Document files
 - Network targers
 
-### 3. Moving Items Between Fences
+### 3. Moving Items Between Frames
 
 **Using the Move Dialog:**
 
@@ -115,7 +115,7 @@ This will show the Customize Fence window.
 
 ### 2. Launch Effects
 
-When you click on items in fences, choose from these visual effects:
+When you click on items in Frames, choose from these visual effects:
 
 - **Zoom**: Items grow before launching
 - **Bounce**: Items bounce up and down
@@ -149,7 +149,7 @@ In the edit window you can set name, target path, arguments and icon for the sho
 
 ## Manage Invalid Shortcuts
 
-The icons on the fences which are targeting files and folders are getting continuously checked for target validity. If target is missing or it is not accessible an icon indicate that this shortcut is not functioning, so you can check the target and fix it or delete the dead shortcut. You can right click on this icon and select "Remove".   
+The icons on the Frames which are targeting files and folders are getting continuously checked for target validity. If target is missing or it is not accessible an icon indicate that this shortcut is not functioning, so you can check the target and fix it or delete the dead shortcut. You can right click on this icon and select "Remove".   
 
 **Clear Dead Shortcuts:** If you want to remove all dead shortcuts within a fence with just one move right click on the fence and select "Clear Dead Shortcuts"
 
@@ -157,11 +157,11 @@ The icons on the fences which are targeting files and folders are getting contin
 
 ## Convenient Usage Functions
 
-**Hide Fence**: Right click a fence an select "Hide Fence". This sets the fence as hidden and the number of hidden fences increases ion the tray icon. To show the fence again you can use the tray icon context menu where the hidden fences are shown as items on "Show Hidden Fences" menu
+**Hide Fence**: Right click a fence an select "Hide Fence". This sets the fence as hidden and the number of hidden Frames increases ion the tray icon. To show the fence again you can use the tray icon context menu where the hidden Frames are shown as items on "Show Hidden Frames" menu
 
 **Peek Behind**: Right click a fence an select "Hide Fence". The fence hides for 10 second to help access the desktop behind the fence. This feature is helpful if for some reason you need to see behind the fence for a short time. A count down timer is shown in place.
 
-**Hide/Unhide All Fences**: Double click the tray icon. All fences will toggle. Note: This function doesn't change the status of hidden fences with teh above mentioned "Hide Fence" function.
+**Hide/Unhide All Frames**: Double click the tray icon. All Frames will toggle. Note: This function doesn't change the status of hidden Frames with teh above mentioned "Hide Fence" function.
 
 **Rollup/RollDown a fence**: ~~Ctrl + Click~~ Double click on fence title. The fence will rollup into its title. To Roll down again to fence previous height ~~Ctrl + Click~~ Double click again the title area. Changed on v2.5.2.125
 
@@ -185,10 +185,10 @@ Right clicking any shortcut the following usage options are available:
 
 
 ## Search (v2.5.2.135)
-Double click ta any enpty arean on any fence or ``CTRL + ``` to see the search window. Search is performed on all data fences and matching shortcuts are displayed below the search field.  
+Double click ta any enpty arean on any fence or ``CTRL + ``` to see the search window. Search is performed on all data Frames and matching shortcuts are displayed below the search field.  
 
 
-## Import/Export fences
+## Import/Export Frames
 
 Click on the heart ❤️ menu and select "Export this Fence" to export a fence into a  *.fence file.  This file will be exported into "Exports" subfolder on program path.
 To import a fence exported previously click on the heart ❤️ menu and select "Import a Fence", browse for a *.fence file and import it.
@@ -213,26 +213,26 @@ Access settings through the system tray icon → "Options":
 
 - **Single Click to Launch:** Enables single click on icons, otherwise double click is needed. Change requires program restart. 
 
-- **Enable Snap Near Fences**: Automatically align fences to each other
+- **Enable Snap Near Frames**: Automatically align Frames to each other
 
 - **Enable Dimension Snap**: Automatically snaps size to the closest value of multiple of 10
 
 - **Enable Tray Icon**: Display icon in system notification area
 
-- **Use Recycle Bin on Portal Fences 'Delete Item' command:** Send files to recycle bin instead of deleting them
+- **Use Recycle Bin on Portal Frames 'Delete Item' command:** Send files to recycle bin instead of deleting them
   
   
 
 **Style:**
 
-- **Enable Portal Fences Watermark:** Enables the "portal" watermark image on portal fences
-- **Enable Note Fences Watermark:** To be added
-- **Disable Fences Scrollbars:** Hides scrollbars from fences when contents exceed the available display area
+- **Enable Portal Frames Watermark:** Enables the "portal" watermark image on portal Frames
+- **Enable Note Frames Watermark:** To be added
+- **Disable Frames Scrollbars:** Hides scrollbars from Frames when contents exceed the available display area
 - **Enable Sounds:**  Toggles program ability to make sound on message boxes 
 
-- **Fence Tint **: Adjust overall fences tint (0-100%)
+- **Fence Tint **: Adjust overall Frames tint (0-100%)
 - **Menu Tint **: Adjust menu icons base tint (0-100%)
-- **Color**: Sets the default fences color
+- **Color**: Sets the default Frames color
 - **Launch Effect**: Sets the default launch effect
 
 
@@ -243,7 +243,7 @@ Access settings through the system tray icon → "Options":
 
 **Backup and Restore:**
 
-- **Backup Data**: Create timestamped backups of all fences and shortcuts
+- **Backup Data**: Create timestamped backups of all Frames and shortcuts
 - **Import Backup**: Restore from previous backup files
 - **Open Backups Folder:** Opens backups folder in file explorer
 
@@ -285,13 +285,13 @@ Access settings through the system tray icon → "Options":
 
 **Configuration Issues**
 
-1. Reset the program! Delete options.json and fences.json from progarm fodler and try again
+1. Reset the program! Delete options.json and Frames.json from progarm fodler and try again
 
 
 
-**Portal Fences Issues**
+**Portal Frames Issues**
 
-1. Delete portal fence from fences.json and try creating again
+1. Delete portal fence from Frames.json and try creating again
 2. Verify the path exists and it is accessible
 
 
@@ -304,19 +304,19 @@ Access settings through the system tray icon → "Options":
 
 **By Category:**
 
-- Create fences for different types of applications (Games, Work, Utilities)
+- Create Frames for different types of applications (Games, Work, Utilities)
 - Use color coding to visually distinguish categories
 - Keep related items together for easy access
 
 **By Frequency:**
 
-- Place frequently used items in easily accessible fences
+- Place frequently used items in easily accessible Frames
 - Use larger icon sizes for important applications
 - Consider using launch effects for visual feedback
 
 **By Project:**
 
-- Create temporary fences for specific projects
+- Create temporary Frames for specific projects
 
 - Include all related files, documents, and tools
 
@@ -330,8 +330,8 @@ Access settings through the system tray icon → "Options":
 
 **Configuration Files:**
 
-- `fences.json`: Main fence configuration and layout
-- `Desktop_Fences.log`: Application log file
+- `Frames.json`: Main fence configuration and layout
+- `Desktop_Frames.log`: Application log file
 - `Shortcuts/`: Folder containing fence shortcut files
 
 **Backup Structure:**
@@ -357,7 +357,7 @@ The application version is displayed in the About dialog, accessible through the
 
 ---
 
-*This manual covers the core functionality of Desktop Fences +. The application includes many additional features and customization options discoverable through exploration and experimentation.*
+*This manual covers the core functionality of Desktop Frames +. The application includes many additional features and customization options discoverable through exploration and experimentation.*
 
 *Ctrl + Click is your friend* <br>
 
