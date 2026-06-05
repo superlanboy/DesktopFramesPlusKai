@@ -27,10 +27,10 @@ What this means for you:
 
 - Zero Configuration Loss (hopefully- I'm working on it!): Your existing layouts, settings, and internal configuration files will continue to work flawlessly with the new version.
 
-- Still 100% Free: We will not switch to a monthly subscription model 😉.
+- Still 100% Free: It **will not switch** to a monthly subscription model 😉.
 
 Thank you to everyone who helped this project reach 500+ stars.  
-Your support is the reason this tool exists, and corporate pressure won't stop us from improving it. Let's keep buildin  
+Your support is the reason this tool exists, and corporate pressure won't stop me from improving it. Let's keep buildin  
 Please update your bookmarks!
 
 ---
