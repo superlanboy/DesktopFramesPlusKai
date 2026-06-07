@@ -73,13 +73,23 @@ namespace Desktop_Frames
                 {
                     try
                     {
-                        File.Move(legacyPath, newPath);
-                        LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.General, "Auto-Migrated fences.json to frames.json");
+                        // KISS: Read raw text, replace strings, write new file, delete old file.
+                        string rawJson = File.ReadAllText(legacyPath);
+
+                        rawJson = rawJson.Replace("\"FenceBorderColor\"", "\"FrameBorderColor\"");
+                        rawJson = rawJson.Replace("\"frameBorderColor\"", "\"FrameBorderColor\"");
+                        rawJson = rawJson.Replace("\"FenceBorderThickness\"", "\"FrameBorderThickness\"");
+                        rawJson = rawJson.Replace("\"frameBorderThickness\"", "\"FrameBorderThickness\"");
+
+                        File.WriteAllText(newPath, rawJson);
+                        File.Delete(legacyPath);
+
+                        LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.General, "Auto-Migrated and scrubbed fences.json to frames.json");
                     }
-                    catch (Exception moveEx)
+                    catch (Exception ex)
                     {
-                        LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"Rename failed (locked file?): {moveEx.Message}");
-                        newPath = legacyPath; // Fallback to old file if rename is blocked by OS
+                        LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"Migration scrub failed: {ex.Message}");
+                        newPath = legacyPath; // Fallback to old file if blocked
                     }
                 }
 
@@ -315,58 +325,7 @@ namespace Desktop_Frames
 
         #region Simple Migration and Validation - Internal Use
 
-        // ====================================================================
-        // [LEGACY "FENCES" MIGRATION - DO NOT REMOVE]
-        // Executes at Load Time. Directly manipulates the JObject in memory
-        // to consolidate messy/legacy keys and permanently delete them.
-        // ====================================================================
-        private static bool MigrateLegacyKeys(JObject frameObj)
-        {
-            bool modified = false;
 
-            void ConsolidateKey(string officialKey, string[] legacyKeys)
-            {
-                JToken rescuedValue = null;
-
-                // 1. Vacuum up the legacy keys
-                foreach (string oldKey in legacyKeys)
-                {
-                    if (frameObj.ContainsKey(oldKey))
-                    {
-                        var val = frameObj[oldKey];
-                        // Rescue valid data before deleting the key
-                        if (val != null && val.Type != JTokenType.Null && val.ToString() != "" && val.ToString() != "0")
-                        {
-                            rescuedValue = val;
-                        }
-
-                        // Permanently remove the legacy key from memory
-                        frameObj.Remove(oldKey);
-                        modified = true;
-                    }
-                }
-
-                // 2. Check if the official key already has valid data
-                bool hasValidOfficial = frameObj.ContainsKey(officialKey) &&
-                                        frameObj[officialKey] != null &&
-                                        frameObj[officialKey].Type != JTokenType.Null &&
-                                        frameObj[officialKey].ToString() != "" &&
-                                        frameObj[officialKey].ToString() != "0";
-
-                // 3. If the official key is missing or empty, apply the rescued data
-                if (!hasValidOfficial && rescuedValue != null)
-                {
-                    frameObj[officialKey] = rescuedValue;
-                    modified = true;
-                }
-            }
-
-            // Consolidate Border properties
-            ConsolidateKey("FrameBorderColor", new[] { "FenceBorderColor", "FrameBorderColor" });
-            ConsolidateKey("FrameBorderThickness", new[] { "FenceBorderThickness", "FrameBorderThickness" });
-
-            return modified;
-        }
 
         /// <summary>
         /// Applies simple migrations and property defaults
@@ -377,28 +336,21 @@ namespace Desktop_Frames
         {
             bool jsonModified = false;
 
-            // Use a standard for-loop so we can safely modify items in the list
             for (int i = 0; i < _frameData.Count; i++)
             {
                 try
                 {
-                    // Ensure we are working directly with JObject to modify it correctly
                     if (_frameData[i] is JObject frameObj)
                     {
-                        // --- 1. Run the Legacy Scrubber directly on the JObject ---
-                        if (MigrateLegacyKeys(frameObj))
-                            jsonModified = true;
+                
 
-                        // --- 2. Run existing property/type validations ---
+                        // --- Run existing property/type validations ---
                         IDictionary<string, object> frameDict = frameObj.ToObject<IDictionary<string, object>>();
                         bool dictModified = false;
 
                         if (AddMissingBasicProperties(frameDict)) dictModified = true;
                         if (ValidateDataTypes(frameDict)) dictModified = true;
 
-                        // --- CRITICAL ARCHITECTURAL FIX ---
-                        // Because ToObject creates a copy, if the validation dictionary was modified, 
-                        // we MUST save it back to _frameData. Otherwise, changes are thrown away!
                         if (dictModified)
                         {
                             _frameData[i] = JObject.FromObject(frameDict);
@@ -413,7 +365,6 @@ namespace Desktop_Frames
                 }
             }
 
-            // Save if any modifications were made (this permanently writes the clean JObjects to disk)
             if (jsonModified)
             {
                 SaveFrameData();
@@ -431,7 +382,6 @@ namespace Desktop_Frames
         {
             bool modified = false;
 
-            // Add missing ID
             if (!frameDict.ContainsKey("Id") || string.IsNullOrEmpty(frameDict["Id"]?.ToString()))
             {
                 frameDict["Id"] = Guid.NewGuid().ToString();
@@ -440,92 +390,14 @@ namespace Desktop_Frames
                     $"Added missing ID to frame '{(frameDict.ContainsKey("Title") ? frameDict["Title"] : "Unknown")}'");
             }
 
-            // Add basic tab properties if missing
-            if (!frameDict.ContainsKey("TabsEnabled"))
-            {
-                frameDict["TabsEnabled"] = "false";
-                modified = true;
-            }
-
-            if (!frameDict.ContainsKey("CurrentTab"))
-            {
-                frameDict["CurrentTab"] = 0;
-                modified = true;
-            }
-
-            if (!frameDict.ContainsKey("Tabs"))
-            {
-                frameDict["Tabs"] = new JArray();
-                modified = true;
-            }
-
-            // Add basic state properties
-            if (!frameDict.ContainsKey("IsHidden"))
-            {
-                frameDict["IsHidden"] = "false";
-                modified = true;
-            }
-
-            if (!frameDict.ContainsKey("IsRolled"))
-            {
-                frameDict["IsRolled"] = "false";
-                modified = true;
-            }
+            if (!frameDict.ContainsKey("TabsEnabled")) { frameDict["TabsEnabled"] = "false"; modified = true; }
+            if (!frameDict.ContainsKey("CurrentTab")) { frameDict["CurrentTab"] = 0; modified = true; }
+            if (!frameDict.ContainsKey("Tabs")) { frameDict["Tabs"] = new JArray(); modified = true; }
+            if (!frameDict.ContainsKey("IsHidden")) { frameDict["IsHidden"] = "false"; modified = true; }
+            if (!frameDict.ContainsKey("IsRolled")) { frameDict["IsRolled"] = "false"; modified = true; }
 
             return modified;
         }
-
-
-        /// <summary>
-        /// ATOMIC SANITIZER:
-        /// Scans every Frame JObject, migrates values from legacy keys to official keys, 
-        /// and permanently destroys the legacy keys.
-        /// </summary>
-        private static void SanitizeFrameData(JObject frameObj)
-        {
-            // Define the migration map: Official Key -> Possible Legacy Keys
-            var migrationMap = new Dictionary<string, string[]>
-            {
-                { "FrameBorderColor",     new[] { "FenceBorderColor", "frameBorderColor" } },
-                { "FrameBorderThickness", new[] { "FenceBorderThickness", "frameBorderThickness" } }
-            };
-
-            foreach (var mapping in migrationMap)
-            {
-                string officialKey = mapping.Key;
-                string[] legacyKeys = mapping.Value;
-
-                JToken rescuedValue = null;
-
-                // 1. Find and Rescue valid data from legacy keys
-                foreach (string oldKey in legacyKeys)
-                {
-                    if (frameObj.ContainsKey(oldKey) && frameObj[oldKey].Type != JTokenType.Null)
-                    {
-                        var val = frameObj[oldKey];
-                        // Only rescue if the value is meaningful (not 0, null, or empty)
-                        if (val.ToString() != "0" && val.ToString() != "")
-                        {
-                            rescuedValue = val;
-                        }
-                    }
-                }
-
-                // 2. Remove ALL legacy keys from the object
-                foreach (string oldKey in legacyKeys)
-                {
-                    frameObj.Remove(oldKey);
-                }
-
-                // 3. Set the official key if we rescued a value
-                if (rescuedValue != null)
-                {
-                    frameObj[officialKey] = rescuedValue;
-                }
-            }
-        }
-
-
 
         /// <summary>
         /// Validates and fixes data types for consistency
@@ -536,7 +408,6 @@ namespace Desktop_Frames
         {
             bool modified = false;
 
-            // Ensure UnrolledHeight is a valid number
             if (frameDict.ContainsKey("UnrolledHeight"))
             {
                 if (!double.TryParse(frameDict["UnrolledHeight"]?.ToString(), out double unrolledHeight) || unrolledHeight <= 0)
@@ -548,7 +419,6 @@ namespace Desktop_Frames
                 }
             }
 
-            // Ensure Width and Height are valid
             if (!double.TryParse(frameDict["Width"]?.ToString(), out double width) || width <= 0)
             {
                 frameDict["Width"] = 230;
@@ -571,27 +441,19 @@ namespace Desktop_Frames
         /// </summary>
         private static void ApplyFormatConsistency(IDictionary<string, object> frameDict)
         {
-            // Convert IsHidden to string format
             if (frameDict.ContainsKey("IsHidden"))
             {
                 bool isHidden = false;
-                if (frameDict["IsHidden"] is bool boolValue)
-                    isHidden = boolValue;
-                else if (frameDict["IsHidden"] is string stringValue)
-                    isHidden = stringValue.ToLower() == "true";
-
+                if (frameDict["IsHidden"] is bool boolValue) isHidden = boolValue;
+                else if (frameDict["IsHidden"] is string stringValue) isHidden = stringValue.ToLower() == "true";
                 frameDict["IsHidden"] = isHidden.ToString().ToLower();
             }
 
-            // Convert IsRolled to string format
             if (frameDict.ContainsKey("IsRolled"))
             {
                 bool isRolled = false;
-                if (frameDict["IsRolled"] is bool boolValue)
-                    isRolled = boolValue;
-                else if (frameDict["IsRolled"] is string stringValue)
-                    isRolled = stringValue.ToLower() == "true";
-
+                if (frameDict["IsRolled"] is bool boolValue) isRolled = boolValue;
+                else if (frameDict["IsRolled"] is string stringValue) isRolled = stringValue.ToLower() == "true";
                 frameDict["IsRolled"] = isRolled.ToString().ToLower();
             }
         }
@@ -604,29 +466,18 @@ namespace Desktop_Frames
         private static void ApplyFrameDefaults(IDictionary<string, object> frameDict,
              string customColor, string customLaunchEffect)
         {
-            // Basic state defaults
             frameDict["IsHidden"] = "false";
             frameDict["IsRolled"] = "false";
             frameDict["UnrolledHeight"] = frameDict["Height"].ToString();
-
-            // Tab defaults
             frameDict["TabsEnabled"] = "false";
             frameDict["CurrentTab"] = 0;
             frameDict["Tabs"] = new JArray();
 
-            // Apply frame type specific defaults
             string itemsType = frameDict["ItemsType"]?.ToString();
-            if (itemsType == "Note")
-            {
-                NoteFramemanager.ApplyNoteDefaults(frameDict);
-            }
+            if (itemsType == "Note") NoteFramemanager.ApplyNoteDefaults(frameDict);
 
-            // Custom properties
-            if (!string.IsNullOrEmpty(customColor))
-                frameDict["CustomColor"] = customColor;
-
-            if (!string.IsNullOrEmpty(customLaunchEffect))
-                frameDict["CustomLaunchEffect"] = customLaunchEffect;
+            if (!string.IsNullOrEmpty(customColor)) frameDict["CustomColor"] = customColor;
+            if (!string.IsNullOrEmpty(customLaunchEffect)) frameDict["CustomLaunchEffect"] = customLaunchEffect;
         }
         #endregion
 

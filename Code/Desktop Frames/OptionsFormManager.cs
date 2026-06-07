@@ -1111,6 +1111,8 @@ namespace Desktop_Frames
         {
             if (MessageBoxesManager.ShowCustomYesNoMessageBox("WARNING: This will delete ALL frames, shortcuts, and settings for the CURRENT PROFILE!\n\nAre you sure you want to proceed?", "Factory Reset"))
             {
+                // KISS: Hijack cursor to show processing
+                System.Windows.Application.Current?.Dispatcher.Invoke(() => System.Windows.Input.Mouse.OverrideCursor = System.Windows.Input.Cursors.Wait);
                 try
                 {
                     // 1. Create a safety backup before wiping
@@ -1118,7 +1120,6 @@ namespace Desktop_Frames
                     BackupManager.CreateBackup($"{ts}_backup_reset", silent: true);
 
                     // 2. Wipe Profile-Specific Folders
-                    // FIX: Use ProfileManager.GetProfileFilePath to target the active profile
                     foreach (string f in new[] { "Temp Shortcuts", "Shortcuts", "Last Frame Deleted", "CopiedItem" })
                     {
                         string p = ProfileManager.GetProfileFilePath(f);
@@ -1127,28 +1128,44 @@ namespace Desktop_Frames
                             try
                             {
                                 System.IO.Directory.Delete(p, true);
-                                System.IO.Directory.CreateDirectory(p);
+                                System.IO.Directory.CreateDirectory(p); // Recreate empty folder
                             }
                             catch { }
                         }
                     }
 
-                    // 3. Wipe Profile-Specific Config Files
-                    string fj = ProfileManager.GetProfileFilePath("fences.json");
-                    if (System.IO.File.Exists(fj)) System.IO.File.Delete(fj);
+                    // 3. Wipe Profile-Specific Config Files (OVERWRITE INSTEAD OF DELETE)
+                    // FIX: Pointed to frames.json and wrote empty array to prevent read crashes
+                    string fj = ProfileManager.GetProfileFilePath("frames.json");
+                    System.IO.File.WriteAllText(fj, "[]");
 
                     string oj = ProfileManager.GetProfileFilePath("options.json");
-                    if (System.IO.File.Exists(oj)) System.IO.File.Delete(oj);
+                    System.IO.File.WriteAllText(oj, "{}");
 
-                    // 4. Reload to apply the "Empty" state
-                    SettingsManager.LoadSettings();
-                    Framemanager.ReloadFrames();
-                    _optionsWindow.Close();
+                    // 4. Force a clean OS-level restart (Guarantees all UI clears properly)
+                    MessageBoxesManager.ShowOKOnlyMessageBoxForm("Factory Reset complete.\nThe application will now restart.", "Reset Successful");
+
+                    string appPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c ping 127.0.0.1 -n 3 > nul & start \"\" \"{appPath}\"",
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    });
+
+                    // Instantly kill current process
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
                 }
                 catch (Exception ex)
                 {
                     LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.Error, $"Factory reset failed: {ex.Message}");
                     MessageBoxesManager.ShowOKOnlyMessageBoxForm($"Reset failed: {ex.Message}", "Error");
+                }
+                finally
+                {
+                    System.Windows.Application.Current?.Dispatcher.Invoke(() => System.Windows.Input.Mouse.OverrideCursor = null);
                 }
             }
         }

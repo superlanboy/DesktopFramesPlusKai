@@ -112,7 +112,8 @@ namespace Desktop_Frames
         public static string CopiedItemFolderPath => _copiedItemFolderPath;
         #endregion
 
-        #region Copy Operations - Adapted from BackupManager.BackupDeletedFence
+        #region 
+
         /// <summary>
         /// Copies an item to temporary storage for pasting to other frames
         /// Uses BackupManager patterns for file operations and JSON serialization
@@ -199,7 +200,7 @@ namespace Desktop_Frames
         }
         #endregion
 
-        #region Paste Operations - Adapted from BackupManager.RestoreLastDeletedFence
+        #region
         /// <summary>
         /// Pastes the copied item to a target frame
         /// Uses BackupManager patterns for file operations and frame data updates

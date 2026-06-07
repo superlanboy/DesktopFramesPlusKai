@@ -8,6 +8,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -154,6 +155,7 @@ namespace Desktop_Frames
 
         public static void ExportFrame(dynamic frame)
         {
+            Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
             try
             {
                 LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.ImportExport, $"Starting export of frame: {frame.Title}");
@@ -175,14 +177,14 @@ namespace Desktop_Frames
                 {
                     frameTitle = "ExportedFrame_" + Guid.NewGuid().ToString().Substring(0, 8);
                 }
-				// ---------------------------------------------------------------------------
+                // ---------------------------------------------------------------------------
 
-				// Exports go to GLOBAL "Exports" folder (shared between profiles)
-				string exportFolder = Path.Combine(exeDir, "Exports", frameTitle);
-				string framePath = Path.Combine(exeDir, "Exports", $"{frameTitle}"); // --- FIX: Switched to  extension ---
+                // Exports go to GLOBAL "Exports" folder (shared between profiles)
+                string exportFolder = Path.Combine(exeDir, "Exports", frameTitle);
+                string framePath = Path.Combine(exeDir, "Exports", $"{frameTitle}.frame"); // NEW FORMAT
 
-				// Ensure exports directory exists
-				string exportsDir = Path.Combine(exeDir, "Exports");
+                // Ensure exports directory exists
+                string exportsDir = Path.Combine(exeDir, "Exports");
                 if (!Directory.Exists(exportsDir)) Directory.CreateDirectory(exportsDir);
 
                 // Cleanup previous runs
@@ -193,7 +195,7 @@ namespace Desktop_Frames
 
                 // 1. Save Metadata
                 string frameJson = JsonConvert.SerializeObject(frame, Formatting.Indented);
-                File.WriteAllText(Path.Combine(exportFolder, "fence.json"), frameJson);
+                File.WriteAllText(Path.Combine(exportFolder, "frame.json"), frameJson);
 
                 // 2. Copy Shortcuts (TAB-AWARE FIX)
                 if (frame.ItemsType?.ToString() == "Data")
@@ -259,15 +261,20 @@ namespace Desktop_Frames
 				LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.ImportExport, $"Frame exported successfully: {framePath}");
 				MessageBoxesManager.ShowOKOnlyMessageBoxForm($"Frame exported to:\n{framePath}", "Export Successful");
 			}
-			catch (Exception ex)
+            catch (Exception ex)
             {
                 LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.ImportExport, $"Export failed: {ex.Message}");
                 MessageBoxesManager.ShowOKOnlyMessageBoxForm($"Export failed: {ex.Message}", "Error");
+            }
+            finally
+            {
+                Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
             }
         }
 
         public static void ImportFrame()
         {
+            Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
             try
             {
                 LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.ImportExport, "Starting frame import process");
@@ -275,17 +282,17 @@ namespace Desktop_Frames
                 string exeDir = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 				string exportsDir = Path.Combine(exeDir, "Exports");
 
-				var openDialog = new Microsoft.Win32.OpenFileDialog
-				{
-					Filter = "Frame Files|*;*.fence", // --- FIX: Allows importing both new and legacy exports ---
-					DefaultExt = "", // --- FIX: Defaults to the new extension ---
-					InitialDirectory = Directory.Exists(exportsDir) ? exportsDir : exeDir,
-					Title = "Select Frame Export File"
-				};
+                var openDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Frame Files|*.frame;*.fence", // SUPPORT BOTH EXTENSIONS
+                    DefaultExt = ".frame", // DEFAULT TO NEW
+                    InitialDirectory = Directory.Exists(exportsDir) ? exportsDir : exeDir,
+                    Title = "Select Frame Export File"
+                };
 
-				if (openDialog.ShowDialog() != true) return;
+                if (openDialog.ShowDialog() != true) return;
 
-				string selectedFile = openDialog.FileName;
+                string selectedFile = openDialog.FileName;
                 string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
                 Directory.CreateDirectory(tempDir);
 
@@ -293,10 +300,22 @@ namespace Desktop_Frames
                 {
                     ZipFile.ExtractToDirectory(selectedFile, tempDir);
 
-                    string frameJsonPath = Path.Combine(tempDir, "fence.json");
-                    if (!File.Exists(frameJsonPath)) throw new FileNotFoundException("Invalid export: missing fence.json");
+                    // Check for new (frame.json) and legacy (fence.json) internal files
+                    string frameJsonPath = Path.Combine(tempDir, "frame.json");
+                    if (!File.Exists(frameJsonPath))
+                    {
+                        frameJsonPath = Path.Combine(tempDir, "fence.json");
+                    }
+                    if (!File.Exists(frameJsonPath)) throw new FileNotFoundException("Invalid export: missing frame data file");
 
                     string jsonContent = File.ReadAllText(frameJsonPath);
+
+                    // KISS SCRUBBER: Neutralize legacy ghost keys before the app touches it
+                    jsonContent = jsonContent.Replace("\"FenceBorderColor\"", "\"FrameBorderColor\"");
+                    jsonContent = jsonContent.Replace("\"frameBorderColor\"", "\"FrameBorderColor\"");
+                    jsonContent = jsonContent.Replace("\"FenceBorderThickness\"", "\"FrameBorderThickness\"");
+                    jsonContent = jsonContent.Replace("\"frameBorderThickness\"", "\"FrameBorderThickness\"");
+
                     dynamic importedFrame = JsonConvert.DeserializeObject<JObject>(jsonContent);
                     if (importedFrame == null) throw new InvalidDataException("Invalid JSON data");
 
@@ -382,13 +401,17 @@ namespace Desktop_Frames
                 LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.ImportExport, $"Import failed: {ex.Message}");
                 MessageBoxesManager.ShowOKOnlyMessageBoxForm($"Failed to import frame: {ex.Message}", "Import Error");
             }
+            finally
+            {
+                Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
+            }
         }
 
-		#endregion
+        #endregion
 
-		#region Deletion Backup Management
+        #region Deletion Backup Management
 
-		public static void BackupDeletedFrame(dynamic frame)
+        public static void BackupDeletedFrame(dynamic frame)
 		{
 			try
 			{
@@ -461,7 +484,7 @@ namespace Desktop_Frames
                     }
                 }
 
-                string frameJsonPath = Path.Combine(_lastDeletedFolderPath, "fence.json");
+                string frameJsonPath = Path.Combine(_lastDeletedFolderPath, "frame.json");
                 File.WriteAllText(frameJsonPath, JsonConvert.SerializeObject(frame, Formatting.Indented));
 
                 LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.ImportExport, $"Deletion backup completed for frame '{frame.Title}'");
@@ -589,10 +612,12 @@ namespace Desktop_Frames
         // Refactored Helper: Centralizes the actual backup work
         public static void CreateBackup(string folderName, bool silent = false)
         {
+            // KISS: Instantly trigger the Windows "Wait/Processing" cursor
+            Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
             try
             {
                 // SOURCE: Profile Directory (Dynamic)
-                string jsonFilePath = ProfileManager.GetProfileFilePath("fences.json");
+                string jsonFilePath = ProfileManager.GetProfileFilePath("frames.json");
                 string optionsFilePath = ProfileManager.GetProfileFilePath("options.json");
                 string shortcutsFolderPath = ProfileManager.GetProfileFilePath("Shortcuts");
 
@@ -606,8 +631,8 @@ namespace Desktop_Frames
                 }
                 Directory.CreateDirectory(backupFolderPath);
 
-                // 1. Copy fences.json
-                string backupJsonFilePath = Path.Combine(backupFolderPath, "fences.json");
+                // 1. Copy frames.json
+                string backupJsonFilePath = Path.Combine(backupFolderPath, "frames.json");
                 if (File.Exists(jsonFilePath))
                 {
                     File.Copy(jsonFilePath, backupJsonFilePath, true);
@@ -643,15 +668,25 @@ namespace Desktop_Frames
                     MessageBoxesManager.ShowOKOnlyMessageBoxForm($"An error occurred during backup: {ex.Message}", "Error");
                 }
             }
+            finally
+            {
+                // KISS: Guarantee the cursor returns to normal, even on failure
+                Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
+            }
         }
-
         public static void RestoreFromBackup(string backupFolder)
         {
+            Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
             try
             {
                 LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.ImportExport, $"Starting restore from backup: {backupFolder}");
 
-                string backupFramesPath = Path.Combine(backupFolder, "fences.json");
+                // Check for new frames.json, fallback to legacy fences.json if it's an old backup
+                string backupFramesPath = Path.Combine(backupFolder, "frames.json");
+                if (!File.Exists(backupFramesPath))
+                {
+                    backupFramesPath = Path.Combine(backupFolder, "fences.json");
+                }
                 string backupShortcutsPath = Path.Combine(backupFolder, "Shortcuts");
 
                 if (!File.Exists(backupFramesPath) || !Directory.Exists(backupShortcutsPath))
@@ -689,13 +724,20 @@ namespace Desktop_Frames
                 }
 
                 // 3. Clear & Copy Data
-                string currentFramesPath = ProfileManager.GetProfileFilePath("fences.json");
+                string currentFramesPath = ProfileManager.GetProfileFilePath("frames.json");
                 string currentShortcutsPath = ProfileManager.GetProfileFilePath("Shortcuts");
 
                 var FrameData = Framemanager.GetFrameData();
                 FrameData?.Clear();
 
-                File.Copy(backupFramesPath, currentFramesPath, true);
+                // KISS SCRUBBER: Read backup, sanitize legacy keys, and write to new format
+                string backupContent = File.ReadAllText(backupFramesPath);
+                backupContent = backupContent.Replace("\"FenceBorderColor\"", "\"FrameBorderColor\"");
+                backupContent = backupContent.Replace("\"frameBorderColor\"", "\"FrameBorderColor\"");
+                backupContent = backupContent.Replace("\"FenceBorderThickness\"", "\"FrameBorderThickness\"");
+                backupContent = backupContent.Replace("\"frameBorderThickness\"", "\"FrameBorderThickness\"");
+
+                File.WriteAllText(currentFramesPath, backupContent);
 
                 if (Directory.Exists(currentShortcutsPath))
                 {
@@ -714,19 +756,20 @@ namespace Desktop_Frames
 
                     string appPath = Process.GetCurrentProcess().MainModule.FileName;
 
-                    // Spawns a hidden command prompt that waits ~2 seconds before launching the app,
-                    // guaranteeing the current instance has fully released the Single Instance Mutex.
+                    // Spawns a hidden command prompt that waits ~2 seconds before launching the app.
+                    // UseShellExecute = false explicitly prevents the child cmd.exe from inheriting the Single-Instance Mutex.
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = "cmd.exe",
                         Arguments = $"/c ping 127.0.0.1 -n 3 > nul & start \"\" \"{appPath}\"",
                         WindowStyle = ProcessWindowStyle.Hidden,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
+                        UseShellExecute = false
                     });
 
-                    // FIX: Instantly terminate the process to prevent background threads from 
-                    // throwing NullReferenceExceptions during a graceful WPF teardown.
-                    Environment.Exit(0);
+                    // OS-LEVEL TERMINATION: Bypasses .NET finalizers and WPF dispatchers entirely. 
+                    // Guarantees the old instance is instantly destroyed and cannot deadlock.
+                    Process.GetCurrentProcess().Kill();
                 }
                 else
                 {
@@ -737,6 +780,10 @@ namespace Desktop_Frames
             {
                 LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.ImportExport, $"Restore failed: {ex.Message}");
                 MessageBoxesManager.ShowOKOnlyMessageBoxForm($"Restore failed: {ex.Message}", "Error");
+            }
+            finally
+            {
+                Application.Current?.Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
             }
         }
         #endregion

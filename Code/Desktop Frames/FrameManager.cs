@@ -3866,8 +3866,8 @@ namespace Desktop_Frames
                     if (!frameDict.ContainsKey("GrayscaleIcons")) { frameDict["GrayscaleIcons"] = "false"; jsonModified = true; }
 
                     // Border
-                 //   if (!frameDict.ContainsKey("frameBorderColor")) { frameDict["frameBorderColor"] = null; jsonModified = true; }
-               //     if (!frameDict.ContainsKey("frameBorderThickness")) { frameDict["frameBorderThickness"] = 0; jsonModified = true; }
+                    if (!frameDict.ContainsKey("FrameBorderColor")) { frameDict["FrameBorderColor"] = null; jsonModified = true; }
+                    if (!frameDict.ContainsKey("FrameBorderThickness")) { frameDict["FrameBorderThickness"] = 2; jsonModified = true; }
 
                     // --- 4. TABS FEATURE (Structure Only, No Merge) ---
                     if (!frameDict.ContainsKey("TabsEnabled"))
