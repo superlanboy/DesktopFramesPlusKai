@@ -3,10 +3,10 @@
 - **Added**: ✔️ Support for shortcuts with target spotify (e.g. "spotify:search:rock").
 - **Added**: 👻 Auto hide Frames. All Frames can autohide after a user selectable period of time of inactivity.
 - **Added**: ⚡Run as different user and Always run as different options for shortcuts (available under icon's `CTRL + right click` menu).
-- **Fixed**: 🪲 Bug for frame not rolling down (https://github.com/limbo666/DesktopFramesPlus/issues/85).
+- **Fixed**: 🪲 Bug for Frame not rolling down (https://github.com/limbo666/DesktopFramesPlus/issues/85).
 - **Fixed**: 🐜 Crash on tray double click (https://github.com/limbo666/DesktopFramesPlus/issues/75)).
 - **Added**:  🎈 Support for position blank spacers (available as option on `CTRL + right click` on any frame area).
-- **Added**: 🎈 Focus frame function (available either on tray menu or by pressing hotkey combination).
+- **Added**: 🎈 Focus Frame function (available either on tray menu or by pressing hotkey combination).
 - **Improved**: Filter indicator icon on portal Frames follows fade logic of other indicators.
 - **Improved**: Portal Frames can be shorted by: Name, Date modified, Type, Size (cycle shorting method by `CTRL + Click` on any area on the portal frame).    
 - **Improved**: ☑️ Startup icons extraction proccess. The program now is significantly faster on startup.
@@ -20,10 +20,10 @@
 - **Added**: ✅ Options to disable hotkeys for Profile switching, Focus frame and Spot Search.
 - **Improved**: Icon load strategy adopting Lazy loader logic from https://github.com/SMSMy/DesktopFrames fork.
 - **Added**: 🦎 Chameleon mode for Frames color to match wallpaper major color.
-- **Added**: 💥 Smart Desktop engine, to move files to specific portal fneces or folders. Basic rules window and functionality.
+- **Added**: 💥 Smart Desktop engine, to move files to specific Portal Frames or folders. Basic rules window and functionality.
 - **Fixed**: 🐛 Bug on Portal Frames navigation, where program denied navigation to subfolder with `CTRL + click`
 - **Fixed**: 🪲 Bug on first tab elements renaming.
-- **Fixed**: 🪲 Bug on export engine for frame names ending with dots or spaces.
+- **Fixed**: 🪲 Bug on export engine for Frame names ending with dots or spaces.
 - **Fixed**: 🐛 Bug on size indicator for dimension snap.
 - Some other minor fixes.
 
