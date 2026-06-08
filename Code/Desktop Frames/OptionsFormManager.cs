@@ -896,7 +896,7 @@ namespace Desktop_Frames
                     if (child is CheckBox hotkeyCb)
                     {
                         if (hotkeyCb.Name == "EnableProfileHotkeys" && SettingsManager.EnableProfileHotkeys != (hotkeyCb.IsChecked == true)) { SettingsManager.EnableProfileHotkeys = hotkeyCb.IsChecked == true; hotkeysChanged = true; }
-                        if (hotkeyCb.Name == "EnableFocusFramesHotkey" && SettingsManager.EnableFocusFrameHotkey != (hotkeyCb.IsChecked == true)) { SettingsManager.EnableFocusFrameHotkey = hotkeyCb.IsChecked == true; hotkeysChanged = true; }
+                        if (hotkeyCb.Name == "EnableFocusFrameHotkey" && SettingsManager.EnableFocusFrameHotkey != (hotkeyCb.IsChecked == true)) { SettingsManager.EnableFocusFrameHotkey = hotkeyCb.IsChecked == true; hotkeysChanged = true; }
                         if (hotkeyCb.Name == "EnableSpotSearchHotkey" && SettingsManager.EnableSpotSearchHotkey != (hotkeyCb.IsChecked == true)) { SettingsManager.EnableSpotSearchHotkey = hotkeyCb.IsChecked == true; hotkeysChanged = true; }
                     }
 
@@ -1031,6 +1031,9 @@ namespace Desktop_Frames
 
                 // --- NEW: Broadcast Auto-Roll Settings ---
                 Framemanager.RefreshAutoRollSettings();
+
+                // --- NEW: Broadcast Scrollbar Settings ---
+                Framemanager.RefreshScrollbarSettings();
 
                 _optionsWindow.Close();
             }

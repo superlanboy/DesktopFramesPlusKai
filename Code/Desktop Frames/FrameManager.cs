@@ -290,6 +290,22 @@ namespace Desktop_Frames
         private static readonly Dictionary<string, DispatcherTimer> _autoRollTimers = new Dictionary<string, DispatcherTimer>();
         // --------------------------------------
 
+        public static void RefreshScrollbarSettings()
+        {
+            var allFrames = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>();
+            foreach (var win in allFrames)
+            {
+                var border = win.Content as Border;
+                var dockPanel = border?.Child as DockPanel;
+                var scrollViewer = dockPanel?.Children.OfType<ScrollViewer>().FirstOrDefault();
+
+                if (scrollViewer != null)
+                {
+                    scrollViewer.VerticalScrollBarVisibility = SettingsManager.DisableFrameScrollbars ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
+                }
+            }
+        }
+
         public static void RefreshAutoRollSettings()
         {
             int autoRollDelay = 2000;
@@ -4372,8 +4388,9 @@ namespace Desktop_Frames
 
                     // Visual Defaults
                     CustomColor = (string)null,
-                    frameBorderThickness = 2
+                    FrameBorderThickness = 2
                 };
+
 
                 // 2. Create the "Startup Tips" Note Frame
                 var noteFrame = new
@@ -4420,7 +4437,7 @@ namespace Desktop_Frames
                     DisableTextShadow = "false",
                     IconSize = "Medium",
                     IconSpacing = 5,
-                    frameBorderThickness = 2
+                    FrameBorderThickness = 2
                 };
 
                 // 3. Combine and Save
@@ -6062,86 +6079,86 @@ namespace Desktop_Frames
 
 
 
-            // --- STEP 4 START: Configure and Add Events ---
-            titletb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            titletb.Visibility = Visibility.Collapsed;
+            //// --- STEP 4 START: Configure and Add Events ---
+            //titletb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            //titletb.Visibility = Visibility.Collapsed;
 
-            // 1. Handle Keys (Enter = Save, Escape = Cancel)
-            titletb.KeyDown += (sender, e) =>
-            {
-                if (e.Key == Key.Enter)
-                {
-                    string originalTitle = frame.Title.ToString();
-                    string newTitle = titletb.Text;
-                    string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
+            //// 1. Handle Keys (Enter = Save, Escape = Cancel)
+            //titletb.KeyDown += (sender, e) =>
+            //{
+            //    if (e.Key == Key.Enter)
+            //    {
+            //        string originalTitle = frame.Title.ToString();
+            //        string newTitle = titletb.Text;
+            //        string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
 
-                    // Update LIVE Data
-                    string id = frame.Id?.ToString();
-                    var liveFrame = GetFrameData().FirstOrDefault(f => f.Id?.ToString() == id);
+            //        // Update LIVE Data
+            //        string id = frame.Id?.ToString();
+            //        var liveFrame = GetFrameData().FirstOrDefault(f => f.Id?.ToString() == id);
 
-                    if (liveFrame != null)
-                    {
-                        if (liveFrame is Newtonsoft.Json.Linq.JObject jFrame)
-                            jFrame["Title"] = finalTitle;
-                        else
-                            liveFrame.Title = finalTitle;
-                        frame.Title = finalTitle;
-                    }
+            //        if (liveFrame != null)
+            //        {
+            //            if (liveFrame is Newtonsoft.Json.Linq.JObject jFrame)
+            //                jFrame["Title"] = finalTitle;
+            //            else
+            //                liveFrame.Title = finalTitle;
+            //            frame.Title = finalTitle;
+            //        }
 
-                    titlelabel.Content = finalTitle;
-                    win.Title = finalTitle;
-                    titletb.Visibility = Visibility.Collapsed;
-                    titlelabel.Visibility = Visibility.Visible;
+            //        titlelabel.Content = finalTitle;
+            //        win.Title = finalTitle;
+            //        titletb.Visibility = Visibility.Collapsed;
+            //        titlelabel.Visibility = Visibility.Visible;
 
-                    FrameDataManager.SaveFrameData();
-                    win.EndKeyboardInteractiveEdit();
-                }
-                else if (e.Key == Key.Escape)
-                {
-                    // ESCAPE: Cancel and Revert
-                    titletb.Text = frame.Title.ToString();
-                    titletb.Visibility = Visibility.Collapsed;
-                    titlelabel.Visibility = Visibility.Visible;
-                    win.EndKeyboardInteractiveEdit();
-                    e.Handled = true;
+            //        FrameDataManager.SaveFrameData();
+            //        win.EndKeyboardInteractiveEdit();
+            //    }
+            //    else if (e.Key == Key.Escape)
+            //    {
+            //        // ESCAPE: Cancel and Revert
+            //        titletb.Text = frame.Title.ToString();
+            //        titletb.Visibility = Visibility.Collapsed;
+            //        titlelabel.Visibility = Visibility.Visible;
+            //        win.EndKeyboardInteractiveEdit();
+            //        e.Handled = true;
 
-                    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, "Rename cancelled via Escape");
-                    }
-                }
-                ;
+            //        LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, "Rename cancelled via Escape");
+            //        }
+            //    }
+            //    ;
 
-            // 2. Handle Focus Loss (Save when clicking away)
-            titletb.LostFocus += (sender, e) =>
-            {
-                // If invisible, we already handled it (e.g. via Escape)
-                if (titletb.Visibility != Visibility.Visible) return;
+            //// 2. Handle Focus Loss (Save when clicking away)
+            //titletb.LostFocus += (sender, e) =>
+            //{
+            //    // If invisible, we already handled it (e.g. via Escape)
+            //    if (titletb.Visibility != Visibility.Visible) return;
 
-                string originalTitle = frame.Title.ToString();
-                string newTitle = titletb.Text;
-                string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
+            //    string originalTitle = frame.Title.ToString();
+            //    string newTitle = titletb.Text;
+            //    string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
 
-                string id = frame.Id?.ToString();
-                var liveFrame = GetFrameData().FirstOrDefault(f => f.Id?.ToString() == id);
+            //    string id = frame.Id?.ToString();
+            //    var liveFrame = GetFrameData().FirstOrDefault(f => f.Id?.ToString() == id);
 
-                if (liveFrame != null)
-                {
-                    if (liveFrame is Newtonsoft.Json.Linq.JObject jFrame)
-                        jFrame["Title"] = finalTitle;
-                    else
-                        liveFrame.Title = finalTitle;
-                    frame.Title = finalTitle;
-                }
+            //    if (liveFrame != null)
+            //    {
+            //        if (liveFrame is Newtonsoft.Json.Linq.JObject jFrame)
+            //            jFrame["Title"] = finalTitle;
+            //        else
+            //            liveFrame.Title = finalTitle;
+            //        frame.Title = finalTitle;
+            //    }
 
-                titlelabel.Content = finalTitle;
-                win.Title = finalTitle;
-                titletb.Visibility = Visibility.Collapsed;
-                titlelabel.Visibility = Visibility.Visible;
+            //    titlelabel.Content = finalTitle;
+            //    win.Title = finalTitle;
+            //    titletb.Visibility = Visibility.Collapsed;
+            //    titlelabel.Visibility = Visibility.Visible;
 
-                FrameDataManager.SaveFrameData();
-                win.EndKeyboardInteractiveEdit();
-                LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Rename saved via LostFocus: {finalTitle}");
-            };
-            // --- STEP 4 END ---
+            //    FrameDataManager.SaveFrameData();
+            //    win.EndKeyboardInteractiveEdit();
+            //    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Rename saved via LostFocus: {finalTitle}");
+            //};
+            //// --- STEP 4 END ---
 
 
             // Move lockIcon to the Grid
@@ -6377,98 +6394,98 @@ namespace Desktop_Frames
 
 
 
-            titletb.KeyDown += (sender, e) =>
-            {
-                if (e.Key == Key.Enter)
-                {
-                    string originalTitle = frame.Title.ToString();
-                    string newTitle = titletb.Text;
+            //titletb.KeyDown += (sender, e) =>
+            //{
+            //    if (e.Key == Key.Enter)
+            //    {
+            //        string originalTitle = frame.Title.ToString();
+            //        string newTitle = titletb.Text;
 
-                    // Process through InterCore for special triggers
-                    string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
+            //        // Process through InterCore for special triggers
+            //        string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
 
-                    // --- FIX START: Update LIVE Data ---
-                    // Get the ID to find the fresh object in the global list
-                    string id = frame.Id?.ToString();
-                    var liveFrame = GetFrameData().FirstOrDefault(f => f.Id?.ToString() == id);
+            //        // --- FIX START: Update LIVE Data ---
+            //        // Get the ID to find the fresh object in the global list
+            //        string id = frame.Id?.ToString();
+            //        var liveFrame = GetFrameData().FirstOrDefault(f => f.Id?.ToString() == id);
 
-                    if (liveFrame != null)
-                    {
-                        // Update the live object in the list
-                        // Handle both JObject (JSON) and ExpandoObject (New frame)
-                        if (liveFrame is Newtonsoft.Json.Linq.JObject jFrame)
-                            jFrame["Title"] = finalTitle;
-                        else
-                            liveFrame.Title = finalTitle;
+            //        if (liveFrame != null)
+            //        {
+            //            // Update the live object in the list
+            //            // Handle both JObject (JSON) and ExpandoObject (New frame)
+            //            if (liveFrame is Newtonsoft.Json.Linq.JObject jFrame)
+            //                jFrame["Title"] = finalTitle;
+            //            else
+            //                liveFrame.Title = finalTitle;
 
-                        // Also update the local reference just in case
-                        frame.Title = finalTitle;
-                    }
-                    // --- FIX END ---
+            //            // Also update the local reference just in case
+            //            frame.Title = finalTitle;
+            //        }
+            //        // --- FIX END ---
 
-                    // Update UI
-                    titlelabel.Content = finalTitle;
-                    win.Title = finalTitle;
-                    titletb.Visibility = Visibility.Collapsed;
-                    titlelabel.Visibility = Visibility.Visible;
+            //        // Update UI
+            //        titlelabel.Content = finalTitle;
+            //        win.Title = finalTitle;
+            //        titletb.Visibility = Visibility.Collapsed;
+            //        titlelabel.Visibility = Visibility.Visible;
 
-                    // Save the global list which now contains the updated title
-                    FrameDataManager.SaveFrameData();
+            //        // Save the global list which now contains the updated title
+            //        FrameDataManager.SaveFrameData();
 
-                    win.ShowActivated = false;
-                    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation, $"Exited edit mode via Enter, final title for frame: {finalTitle}");
-                    win.Focus();
-                }
-                else if (e.Key == Key.Escape)
-                {
-                    // FIX: ESCAPE Logic (Cancel)
-                    titletb.Text = frame.Title.ToString(); // Revert text
-                    titletb.Visibility = Visibility.Collapsed;
-                    titlelabel.Visibility = Visibility.Visible;
+            //        win.ShowActivated = false;
+            //        LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation, $"Exited edit mode via Enter, final title for frame: {finalTitle}");
+            //        win.Focus();
+            //    }
+            //    else if (e.Key == Key.Escape)
+            //    {
+            //        // FIX: ESCAPE Logic (Cancel)
+            //        titletb.Text = frame.Title.ToString(); // Revert text
+            //        titletb.Visibility = Visibility.Collapsed;
+            //        titlelabel.Visibility = Visibility.Visible;
 
-                    Keyboard.ClearFocus(); // Drop focus
-                    win.ShowActivated = false;
-                    e.Handled = true;
+            //        Keyboard.ClearFocus(); // Drop focus
+            //        win.ShowActivated = false;
+            //        e.Handled = true;
 
-                    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, "Rename cancelled via Escape");
-                }
-            };
+            //        LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, "Rename cancelled via Escape");
+            //    }
+            //};
 
-            // 2. Handle Focus Loss (Auto-Save)
-            titletb.LostFocus += (sender, e) =>
-            {
-                // Don't save if we are cancelling (Escape key handles UI)
-                if (titletb.Visibility != Visibility.Visible) return;
+            //// 2. Handle Focus Loss (Auto-Save)
+            //titletb.LostFocus += (sender, e) =>
+            //{
+            //    // Don't save if we are cancelling (Escape key handles UI)
+            //    if (titletb.Visibility != Visibility.Visible) return;
 
-                string originalTitle = frame.Title.ToString();
-                string newTitle = titletb.Text;
-                string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
+            //    string originalTitle = frame.Title.ToString();
+            //    string newTitle = titletb.Text;
+            //    string finalTitle = InterCore.ProcessTitleChange(frame, newTitle, originalTitle);
 
-                string id = frame.Id?.ToString();
-                var liveFrame = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == id);
+            //    string id = frame.Id?.ToString();
+            //    var liveFrame = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == id);
 
-                if (liveFrame != null)
-                {
-                    IDictionary<string, object> frameDict = liveFrame as IDictionary<string, object> ??
-                        ((JObject)liveFrame).ToObject<IDictionary<string, object>>();
-                    frameDict["Title"] = finalTitle;
+            //    if (liveFrame != null)
+            //    {
+            //        IDictionary<string, object> frameDict = liveFrame as IDictionary<string, object> ??
+            //            ((JObject)liveFrame).ToObject<IDictionary<string, object>>();
+            //        frameDict["Title"] = finalTitle;
 
-                    int index = FrameDataManager.FrameData.IndexOf(liveFrame);
-                    if (index >= 0) FrameDataManager.FrameData[index] = JObject.FromObject(frameDict);
+            //        int index = FrameDataManager.FrameData.IndexOf(liveFrame);
+            //        if (index >= 0) FrameDataManager.FrameData[index] = JObject.FromObject(frameDict);
 
-                    frame.Title = finalTitle;
-                }
+            //        frame.Title = finalTitle;
+            //    }
 
-                titlelabel.Content = finalTitle;
-                win.Title = finalTitle;
-                titletb.Visibility = Visibility.Collapsed;
-                titlelabel.Visibility = Visibility.Visible;
+            //    titlelabel.Content = finalTitle;
+            //    win.Title = finalTitle;
+            //    titletb.Visibility = Visibility.Collapsed;
+            //    titlelabel.Visibility = Visibility.Visible;
 
-                FrameDataManager.SaveFrameData();
+            //    FrameDataManager.SaveFrameData();
 
-                win.ShowActivated = false;
-                LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Rename saved via LostFocus: {finalTitle}");
-            };
+            //    win.ShowActivated = false;
+            //    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Rename saved via LostFocus: {finalTitle}");
+            //};
 
 
 

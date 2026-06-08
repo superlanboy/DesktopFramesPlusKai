@@ -102,6 +102,8 @@ namespace Desktop_Frames
         public static string SpotSearchModifier { get; set; } = "Control";
         public static bool EnableDimensionSnap { get; set; } = false;
         public static bool SingleClickToLaunch { get; set; } = true;
+
+  
         public static LaunchEffectsManager.LaunchEffect LaunchEffect { get; set; } = LaunchEffectsManager.LaunchEffect.Zoom;
         public static LogManager.LogLevel MinLogLevel { get; set; } = LogManager.LogLevel.Info;
         public static List<LogManager.LogCategory> EnabledLogCategories { get; set; } = new List<LogManager.LogCategory>
@@ -205,6 +207,7 @@ namespace Desktop_Frames
                 EnableDimensionSnap,
                 PortalBackgroundOpacity,
                 MaxDisplayNameLength,
+                EnableIconGlowEffect,
                 IconVisibilityEffect = IconVisibilityEffect.ToString(),
                 LaunchEffect = LaunchEffect.ToString(),
                 MinLogLevel = MinLogLevel.ToString(),
@@ -305,7 +308,8 @@ namespace Desktop_Frames
             try { SingleClickToLaunch = data.SingleClickToLaunch ?? true; } catch { SingleClickToLaunch = true; }
             try { EnableDimensionSnap = data.EnableDimensionSnap ?? false; } catch { EnableDimensionSnap = false; }
             try { PortalBackgroundOpacity = data.PortalBackgroundOpacity ?? 30; } catch { PortalBackgroundOpacity = 30; }
-            try { DisableFrameScrollbars = data.DisableframeScrollbars ?? false; } catch { DisableFrameScrollbars = false; }
+            try { EnableIconGlowEffect = data.EnableIconGlowEffect ?? true; } catch { EnableIconGlowEffect = true; }
+            try { DisableFrameScrollbars = data.DisableFrameScrollbars ?? false; } catch { DisableFrameScrollbars = false; }
             try { DisableNoteAutoSave = data.DisableNoteAutoSave ?? false; } catch { DisableNoteAutoSave = false; }
             try { ExportShortcutsOnFrameDeletion = data.ExportShortcutsOnFrameDeletion ?? false; } catch { ExportShortcutsOnFrameDeletion = false; }
             try { DeleteOriginalShortcutsOnDrop = data.DeleteOriginalShortcutsOnDrop ?? false; } catch { DeleteOriginalShortcutsOnDrop = false; }
@@ -326,18 +330,18 @@ namespace Desktop_Frames
             try { EnableContextMenu = data.EnableContextMenu ?? false; } catch { EnableContextMenu = false; }
 
             // Auto-Hide
-            try { AutoHideFrames = data.AutoHideframes ?? false; } catch { AutoHideFrames = false; }
+            try { AutoHideFrames = data.AutoHideFrames ?? false; } catch { AutoHideFrames = false; }
             try { AutoHideTime = data.AutoHideTime ?? 60; } catch { AutoHideTime = 60; }
             try { AutoResetHideTimer = data.AutoResetHideTimer ?? true; } catch { AutoResetHideTimer = true; }
             try { HideFlashEffect = data.HideFlashEffect ?? true; } catch { HideFlashEffect = true; }
-           
+
             // Desktop Icon Visibility
             try { HideDesktopElementsOnStart = data.HideDesktopElementsOnStart ?? false; } catch { HideDesktopElementsOnStart = false; }
-            try { HideDesktopElementsOnAllFramesHide = data.HideDesktopElementsOnallFramesHide ?? false; } catch { HideDesktopElementsOnAllFramesHide = false; }
+            try { HideDesktopElementsOnAllFramesHide = data.HideDesktopElementsOnAllFramesHide ?? false; } catch { HideDesktopElementsOnAllFramesHide = false; }
             try { ShowDesktopDot = data.ShowDesktopDot ?? true; } catch { ShowDesktopDot = true; }
 
             // Idle Fade-Out
-            try { FramesFadeOutFx = data.framesFadeOutFx ?? false; } catch { FramesFadeOutFx = false; }
+            try { FramesFadeOutFx = data.FramesFadeOutFx ?? false; } catch { FramesFadeOutFx = false; }
             try { FadeOutFxTargetAlpha = data.FadeOutFxTargetAlpha ?? 0.3; } catch { FadeOutFxTargetAlpha = 0.3; }
             try { FadeOutTime = data.FadeOutTime ?? 5; } catch { FadeOutTime = 5; }
 
@@ -403,7 +407,7 @@ namespace Desktop_Frames
             // --- FIX: Read existing, but default to false for fresh installs ---
             try { EnableProfileHotkeys = data.EnableProfileHotkeys ?? false; } catch { EnableProfileHotkeys = false; }
             try { AltGrWarningShown = data.AltGrWarningShown ?? false; } catch { AltGrWarningShown = false; }
-            try { EnableFocusFrameHotkey = data.EnableFocusframeHotkey ?? true; } catch { EnableFocusFrameHotkey = true; }
+            try { EnableFocusFrameHotkey = data.EnableFocusFrameHotkey ?? true; } catch { EnableFocusFrameHotkey = true; }
             try { if (data.ProfileSwitchModifier != null) ProfileSwitchModifier = data.ProfileSwitchModifier.ToString(); } catch { }
             try { if (data.ProfileSwitchKeys != null) ProfileSwitchKeys = ((JArray)data.ProfileSwitchKeys).Select(x => (int)x).ToArray(); } catch { }
             try { if (data.ProfilePrevModifier != null) ProfilePrevModifier = data.ProfilePrevModifier.ToString(); } catch { }
@@ -507,11 +511,11 @@ namespace Desktop_Frames
                             data["SpotSearchKey"] = SpotSearchKey;
                             data["EnableProfileHotkeys"] = EnableProfileHotkeys;
                             data["AltGrWarningShown"] = AltGrWarningShown; // --- NEW ---
-                            data["EnableFocusframeHotkey"] = EnableFocusFrameHotkey;
+                            data["EnableFocusFrameHotkey"] = EnableFocusFrameHotkey;
                             data["EnableSpotSearchHotkey"] = EnableSpotSearchHotkey;
-                            data["framesfadeoutfx"] = FramesFadeOutFx;
-                            data["fadeoutfxtargetalpha"] = FadeOutFxTargetAlpha;
-                            data["fadeouttime"] = FadeOutTime;
+                            data["FramesFadeOutFx"] = FramesFadeOutFx;
+                            data["FadeOutFxTargetAlpha"] = FadeOutFxTargetAlpha;
+                            data["FadeOutTime"] = FadeOutTime;
 
                             File.WriteAllText(optionsFile, JsonConvert.SerializeObject(data, Formatting.Indented));
                         }
