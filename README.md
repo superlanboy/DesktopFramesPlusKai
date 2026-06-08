@@ -31,7 +31,11 @@ What this means for you:
 
 Thank you to everyone who helped this project reach 500+ stars.  
 Your support is the reason this tool exists, and corporate pressure won't stop me from improving it. Let's keep buildin  
-Please update your bookmarks!
+Please update your bookmarks!  
+
+A short **how to upgrade guide** can be found on the following link:
+  https://github.com/limbo666/DesktopFramesPlus/blob/main/HowToUpgradeToDesktopFramesPlus.md
+
 
 ---
 
