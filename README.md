@@ -51,11 +51,11 @@ Desktop Frames+ has been significantly enhanced and optimized for improved perfo
 
 
 ##  Version History  
-The list of changes is moved here:  
+**$\color{green}{\text{The list of changes is moved here:}}$**    
 https://github.com/limbo666/DesktopFramesPlus/blob/main/VersionHistory.md
 
 ##  Manual  
-**$\color{red}{\text{A simple how to use guide is located here:}}$**   
+**$\color{blue}{\text{A simple how to use guide is located here:}}$**   
 [https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_Frames_simple_manual.md](https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_frames_simple_manual.md)
 
 
