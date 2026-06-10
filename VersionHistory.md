@@ -5,31 +5,28 @@ v 2.7.7.294
 <img width="301" height="73" alt="image" src="https://github.com/user-attachments/assets/9b71557a-3fe3-4d29-a31f-256824ec9dcb" />
   
 
-- **Fixed**: 🪲 Bug with Frames flickering on restore visibility after autohide  
+- **Fixed**: 🪲 Bug with Frames flickering on restore visibility after autohide.  
 - **Added**: Auto roll Frames. Each Frame has another (right click selectable) option to auto roll after a predifined period of time.    
-- **Improved**: Options window. Control grouping changed through the optiosn winow tabs. Added up/down controls. Controls re-arranged  
+- **Improved**: Options window. Control grouping changed through the optiosn winow tabs. Added up/down controls. Controls re-arranged.  
 - **Added**: 👻 Desktop elements hide function with option to select whether the desktop elements will hide with the program running or when frames are hidden. 
-- **Added**: 🔳 Tweak to turn off round corners on Frames   
-- **Improved**: Portal Frames file watcher engine
+- **Added**: 🔳 Tweak to turn off round corners on Frames.   
+- **Improved**: Portal Frames file watcher engine.
 - **Added**: 🔮 'Apply to all' and 'Save to all' for customization screen to apply changes to all existing Frames. Press 'CTRL' key before clicking "Apply" or "Save" https://github.com/limbo666/DesktopFramesPlus/issues/46  
 - **Fixed**: 🐜 Program lags under slow .lnk sources bug. https://github.com/limbo666/DesktopFramesPlus/issues/93  
-- **Added**: ✴️ Option 'Always on top'. Each Frame has another (right click selectable) option to stay above other windows  
-- **Added**: Toast indication on files drop on portal Frames (copy confirmation to target folder)  
-- **Changed**: Hotkeys for profile switching set to disabled by default  
-- **Imporved**: Internal Message Boxes are now draggable  
+- **Added**: ✴️ Option 'Always on top'. Each Frame has another (right click selectable) option to stay above other windows.  
+- **Added**: Toast indication on files drop on portal Frames (copy confirmation to target folder).  
+- **Changed**: Hotkeys for profile switching set to disabled by default.  
+- **Imporved**: Internal Message Boxes are now draggable.  
 - **Improved**: Added hardware-acceleration optimizations to drop the VRAM footprint significantly and prevent the DWM memory leak during Frame creation.
 - **Fixed**: 🪲 Bug caused crash on renaming Portal Frames with long name.
 - **Fixed**: 🪲 Target file detection bug (once again).  
 - **Fixed**: 🐜 Bug on clear dead shortcuts function.  
 - **Added**: Sound selection for internal message boxes.  
-- **Improved**: Code Refactoring  
-- **Added**: Routines to swicth config files to new scheme  
-- **Fixed**: Restore engine to avoid program stall  
-- **Added**: Simple mouse wait indicator when backing up or restoring.  
-- **Fixed**: Some minor bugs  
-- **Improved**: Some code refactoring targeting stability.   
-
-
+- **Improved**: Enormous code refactoring.  
+- **Added**: Routines to migrate configuration files to new scheme and convert values to new ones.  
+- **Fixed**: Restore engine to avoid program stall.  
+- **Added**: Simple mouse wait indicator while backing up or restoring.  
+- **Fixed**: Some other minor bugs.   
 
 
 ## 2.6.6.234 (Release 11)
