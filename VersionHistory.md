@@ -7,9 +7,8 @@ v 2.7.7.294
 
 - **Fixed**: 🪲 Bug with Frames flickering on restore visibility after autohide  
 - **Added**: Auto roll Frames. Each Frame has another (right click selectable) option to auto roll after a predifined period of time.    
-- **Improved**: Options window. Changes control grouping through the tabs  
-- **Improved**: Options window. Added up/down controls. Controls re-arranged  
-- **Added**: 👻 Desktop elements hide function with option to select whether the desktop elements will hide with the program running or when fances are hidden. 
+- **Improved**: Options window. Control grouping changed through the optiosn winow tabs. Added up/down controls. Controls re-arranged  
+- **Added**: 👻 Desktop elements hide function with option to select whether the desktop elements will hide with the program running or when frames are hidden. 
 - **Added**: 🔳 Tweak to turn off round corners on Frames   
 - **Improved**: Portal Frames file watcher engine
 - **Added**: 🔮 'Apply to all' and 'Save to all' for customization screen to apply changes to all existing Frames. Press 'CTRL' key before clicking "Apply" or "Save" https://github.com/limbo666/DesktopFramesPlus/issues/46  
