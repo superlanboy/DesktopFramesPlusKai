@@ -27,12 +27,25 @@ Your support is the reason this tool exists, and corporate pressure won't stop m
 A short **how to upgrade guide** can be found on the following link:
   https://github.com/limbo666/DesktopFramesPlus/blob/main/HowToUpgradeToDesktopFramesPlus.md
 
+##  Support Me
 
----
+If this project has helped you, please consider supporting its development! Your contribution directly impacts how fast and far this project grows.
+
+Maintaining and improving this tool takes time, effort, and resources. Donations help me:
+ - Dedicate more time to fixing bugs and adding features
+ - Cover the cost of tools (like AI assistance that speeds up development)
+ - Stay motivated and keep pushing the project forward
+
+Your support literally drives the pace of development!  
+Even small contributions mean a lot. Thank you for keeping this project alive and evolving! 
+
+[![Donate](https://raw.githubusercontent.com/limbo666/DesktopFramesPlus/refs/heads/main/Images/paypal.png)](https://www.paypal.com/donate/?hosted_button_id=PPLWC66UC8Q42)
+
+
+##  About Desktop Frames +
 
 
 Desktop Frames + creates **virtual Frames** on your desktop, allowing you to group and organize icons in a clean and convenient way. With enhanced visual effects and right-click options, it aims to provide a more polished and customizable user interface.
-
 
 **Desktop Frames+** is an open-source desktop icon management software, originally created by HakanKokcu under the name BirdyFences.
 
@@ -50,28 +63,13 @@ https://github.com/limbo666/DesktopFramesPlus/blob/main/VersionHistory.md
 [https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_Frames_simple_manual.md](https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_frames_simple_manual.md)
 
 
-##  TIPS 
+##  Tips 
 **$\color{red}{\text{Also some advanced usage tips:}}$**  
 https://github.com/limbo666/DesktopFramesPlus/blob/main/TIPS.md
 <br> Read them before starting an issue. 
 
----
 
-##  Support Me
 
-If this project has helped you, please consider supporting its development! Your contribution directly impacts how fast and far this project grows.
-
-Maintaining and improving this tool takes time, effort, and resources. Donations help me:
- - Dedicate more time to fixing bugs and adding features
- - Cover the cost of tools (like AI assistance that speeds up development)
- - Stay motivated and keep pushing the project forward
-
-Your support literally drives the pace of development!  
-Even small contributions mean a lot. Thank you for keeping this project alive and evolving! 
-
-[![Donate](https://raw.githubusercontent.com/limbo666/DesktopFramesPlus/refs/heads/main/Images/paypal.png)](https://www.paypal.com/donate/?hosted_button_id=PPLWC66UC8Q42)
-
----
 
 ## Features
 
@@ -92,22 +90,16 @@ Even small contributions mean a lot. Thank you for keeping this project alive an
 -   **Fully Portable:** Utilizes relative paths for files and folders to ensure seamless operation across different environments.
 
 
-##  Summary
-
-Desktop Frames + brings a powerful and visually optimized experience for users who want to organize their desktop with flexibility and style. The program is designed to enhance productivity by combining intuitive interactions, aesthetic customization, and practical right-click options.
-
 ---
 
-##  Release
-Get the latest release here:
+##  Download
+Get the latest release from releases section:
 https://github.com/limbo666/DesktopFramesPlus/releases
 **UPDATE: Release 2.7.7.294 is out**
 
 ---
 
 ##  Installation
-
-
 >  Compatible with Windows 10/11  
 >  Fully portable
 
