@@ -1,10 +1,16 @@
 {
   "Announcements": [
     {
-      "Id": "MSG_TEST_A1",
-      "Type": "Info",
-      "Title": "Hello",
-      "Body": "This is just a simple announcement."
+      "Id": "MSG_20260628_1315",
+      "Type": "Warning",
+      "Title": "Version Unsupported",
+      "Body": "You are using an extremely old version of Desktop Frames +. Cloud features will stop working soon.",
+      "Link": "",
+      "TargetVersionMin": "0.0.0.0",
+      "TargetVersionMax": "1.9.9.9",
+      "MaxDisplayCount": 10,
+      "AutoCloseSeconds": 0,
+      "CanUserDismiss": false
     }
   ]
 }
