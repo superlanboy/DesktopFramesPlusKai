@@ -1,15 +1,15 @@
 {
   "Announcements": [
     {
-      "Id": "MSG_20260628_1338",
+      "Id": "MSG_20260628_133e8",
       "Type": "Info",
-      "Title": "Support Desktop Frames +",
-      "Body": "If this tool helps your workflow, please consider supporting the project to keep development alive!",
+      "Title": " We are Desktop Frames +",
+      "Body": "text here",
       "Link": "https://www.paypal.com/donate/?hosted_button_id=PPLWC66UC8Q42",
       "TargetVersionMin": "0.0.0.0",
       "TargetVersionMax": "99.9.9.9",
       "MaxDisplayCount": 3,
-      "AutoCloseSeconds": 0,
+      "AutoCloseSeconds": 20,
       "CanUserDismiss": true
     }
   ]
