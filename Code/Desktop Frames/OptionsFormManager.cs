@@ -389,6 +389,23 @@ namespace Desktop_Frames
             iconGrid.Children.Add(lockIconPanel);
             c.Children.Add(iconGrid);
 
+            // System tray icon style (theme-aware minimalist glyph, drawn in GDI+).
+            Grid trayGrid = new Grid { Margin = new Thickness(15, 0, 0, 12) };
+            trayGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            trayGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var trayLbl = new TextBlock { Text = "System Tray Icon", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+            Grid.SetColumn(trayLbl, 0);
+            var trayCmb = new ComboBox { Name = "TrayIconStyleComboBox", Width = 160, HorizontalAlignment = HorizontalAlignment.Left, Height = 25, FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
+            trayCmb.Items.Add(new ComboBoxItem { Content = "Nested frame", Tag = "Nested" });
+            trayCmb.Items.Add(new ComboBoxItem { Content = "Stacked frames", Tag = "Stacked" });
+            trayCmb.Items.Add(new ComboBoxItem { Content = "Icon grid", Tag = "Grid" });
+            string curTray = SettingsManager.TrayIconStyle ?? "Nested";
+            trayCmb.SelectedIndex = curTray == "Stacked" ? 1 : curTray == "Grid" ? 2 : 0;
+            Grid.SetColumn(trayCmb, 1);
+            trayGrid.Children.Add(trayLbl);
+            trayGrid.Children.Add(trayCmb);
+            c.Children.Add(trayGrid);
+
             t.Content = new ScrollViewer { Content = c, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             _tabControl.Items.Add(t);
         }
@@ -946,6 +963,11 @@ namespace Desktop_Frames
                                 if (rbSp.Tag?.ToString() == "LockIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.LockIcon = (int)rb.Tag;
                             }
                         }
+
+                        // Tray icon style
+                        var trayCmb = g.Children.OfType<ComboBox>().FirstOrDefault(cb => cb.Name == "TrayIconStyleComboBox");
+                        if (trayCmb?.SelectedItem is ComboBoxItem trayItem && trayItem.Tag != null)
+                            SettingsManager.TrayIconStyle = trayItem.Tag.ToString();
                     }
                 }
 

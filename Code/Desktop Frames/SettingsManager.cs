@@ -85,6 +85,8 @@ namespace Desktop_Frames
         public static bool ToggleDesktopIconsOnDoubleClick { get; set; } = false;
         // Global default for zebra striping in Portal Details view (per-frame override via DetailsStriped).
         public static bool PortalDetailsStriped { get; set; } = true;
+        // System-tray icon glyph style: "Nested" | "Stacked" | "Grid" (theme-aware monochrome, drawn in GDI+).
+        public static string TrayIconStyle { get; set; } = "Nested";
 
         // --- NEW: Idle Fade-Out Settings ---
         public static bool FramesFadeOutFx { get; set; } = false;
@@ -257,6 +259,7 @@ namespace Desktop_Frames
                 ShowDesktopDot,
                 ToggleDesktopIconsOnDoubleClick,
                 PortalDetailsStriped,
+                TrayIconStyle,
                 // Idle Fade-Out
                 FramesFadeOutFx,
                 FadeOutFxTargetAlpha,
@@ -354,6 +357,7 @@ namespace Desktop_Frames
             try { ShowDesktopDot = data.ShowDesktopDot ?? true; } catch { ShowDesktopDot = true; }
             try { ToggleDesktopIconsOnDoubleClick = data.ToggleDesktopIconsOnDoubleClick ?? false; } catch { ToggleDesktopIconsOnDoubleClick = false; }
             try { PortalDetailsStriped = data.PortalDetailsStriped ?? true; } catch { PortalDetailsStriped = true; }
+            try { TrayIconStyle = (string)(data.TrayIconStyle ?? "Nested"); } catch { TrayIconStyle = "Nested"; }
 
             // Idle Fade-Out
             try { FramesFadeOutFx = data.FramesFadeOutFx ?? false; } catch { FramesFadeOutFx = false; }

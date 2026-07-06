@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Media;
@@ -753,36 +754,95 @@ namespace Desktop_Frames
         {
             if (_disposed) return;
             _trayIcon?.Dispose();
+            if (_lastIconHandle != IntPtr.Zero) { DestroyIcon(_lastIconHandle); _lastIconHandle = IntPtr.Zero; }
             _disposed = true;
         }
 
-        private Icon GenerateIconWithNumber(int count)
+        [DllImport("user32.dll", SetLastError = true)] private static extern bool DestroyIcon(IntPtr hIcon);
+        private IntPtr _lastIconHandle = IntPtr.Zero;
+
+        /// <summary>True when the Windows taskbar/system uses the light theme (so we draw a dark glyph).</summary>
+        private static bool IsTaskbarLight()
         {
-            string exePath = Process.GetCurrentProcess().MainModule.FileName;
-            using (var baseIcon = Icon.ExtractAssociatedIcon(exePath))
-
-            using (var bitmap = baseIcon.ToBitmap())
-            using (var graphics = Graphics.FromImage(bitmap))
+            try
             {
-                int circleDiameter = 24;
-                int circleX = -4;
-                int circleY = -1;
-
-                var circleBrush = new SolidBrush(Color.FromArgb(230, 255, 153, 53));
-                graphics.FillEllipse(circleBrush, circleX, circleY, circleDiameter, circleDiameter);
-
-                var font = new Font("Calibri", 26, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel);
-                var textBrush = new SolidBrush(Color.Navy);
-
-                string text = count.ToString();
-                var textSize = graphics.MeasureString(text, font);
-                float textX = circleX + (circleDiameter - textSize.Width) / 2;
-                float textY = circleY + (circleDiameter - textSize.Height) / 2;
-
-                graphics.DrawString(text, font, textBrush, textX, textY);
-
-                return Icon.FromHandle(bitmap.GetHicon());
+                using (var k = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (k?.GetValue("SystemUsesLightTheme") is int i) return i != 0;
+                }
             }
+            catch { }
+            return false; // default: dark taskbar
+        }
+
+        private static GraphicsPath RoundedRect(RectangleF r, float radius)
+        {
+            float d = radius * 2f;
+            var p = new GraphicsPath();
+            if (d <= 0) { p.AddRectangle(r); p.CloseFigure(); return p; }
+            p.AddArc(r.X, r.Y, d, d, 180, 90);
+            p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            p.CloseFigure();
+            return p;
+        }
+
+        /// <summary>Draws the chosen minimalist tray glyph (theme-aware monochrome) on a 32px canvas.</summary>
+        private static void DrawTrayGlyph(Graphics g, string style)
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            Color c = IsTaskbarLight() ? Color.FromArgb(58, 58, 58) : Color.FromArgb(240, 242, 245);
+            using (var fill = new SolidBrush(c))
+            using (var dim = new SolidBrush(Color.FromArgb(120, c)))
+            using (var pen = new Pen(c, 3f) { Alignment = PenAlignment.Center, LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                switch (style)
+                {
+                    case "Stacked": // A — two offset rounded frames
+                        using (var back = RoundedRect(new RectangleF(4, 4, 18, 18), 4)) g.FillPath(dim, back);
+                        using (var front = RoundedRect(new RectangleF(10, 10, 18, 18), 4)) g.FillPath(fill, front);
+                        break;
+
+                    case "Grid": // B — 2x2 dots inside a rounded frame
+                        using (var box = RoundedRect(new RectangleF(4, 4, 24, 24), 6)) g.DrawPath(pen, box);
+                        foreach (var (dx, dy) in new[] { (9, 9), (17, 9), (9, 17), (17, 17) })
+                            using (var dot = RoundedRect(new RectangleF(dx, dy, 6, 6), 1.5f)) g.FillPath(fill, dot);
+                        break;
+
+                    default: // C — nested frame
+                        using (var outer = RoundedRect(new RectangleF(4, 4, 24, 24), 7)) g.DrawPath(pen, outer);
+                        using (var inner = RoundedRect(new RectangleF(11, 11, 10, 10), 2.5f)) g.FillPath(fill, inner);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>Builds the tray icon: the minimalist glyph plus the orange hidden-frames count badge.</summary>
+        private Icon BuildTrayIcon(int count)
+        {
+            var bitmap = new Bitmap(32, 32);
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                DrawTrayGlyph(g, SettingsManager.TrayIconStyle ?? "Nested");
+
+                if (count > 0)
+                {
+                    int d = 24, x = -4, y = -1;
+                    using (var circleBrush = new SolidBrush(Color.FromArgb(230, 255, 153, 53)))
+                        g.FillEllipse(circleBrush, x, y, d, d);
+                    using (var font = new Font("Calibri", 26, System.Drawing.FontStyle.Bold, GraphicsUnit.Pixel))
+                    using (var textBrush = new SolidBrush(Color.Navy))
+                    {
+                        string text = count.ToString();
+                        var ts = g.MeasureString(text, font);
+                        g.DrawString(text, font, textBrush, x + (d - ts.Width) / 2, y + (d - ts.Height) / 2);
+                    }
+                }
+            }
+            IntPtr h = bitmap.GetHicon();
+            bitmap.Dispose();
+            return Icon.FromHandle(h);
         }
 
         public void UpdateTrayIcon()
@@ -792,15 +852,11 @@ namespace Desktop_Frames
                 // FIX: Update the tooltip text to match the current profile
                 _trayIcon.Text = $"Desktop Frames + ({ProfileManager.CurrentProfileName})";
 
-                if (HiddenFrames.Count > 0)
-                {
-                    _trayIcon.Icon = GenerateIconWithNumber(HiddenFrames.Count + _tempHiddenFrames.Count);
-                }
-                else
-                {
-                    string exePath = Process.GetCurrentProcess().MainModule.FileName;
-                    _trayIcon.Icon = Icon.ExtractAssociatedIcon(exePath);
-                }
+                var newIcon = BuildTrayIcon(HiddenFrames.Count + _tempHiddenFrames.Count);
+                _trayIcon.Icon = newIcon;
+                // Free the previous GDI icon handle (Icon.FromHandle doesn't own it) to avoid a handle leak.
+                if (_lastIconHandle != IntPtr.Zero) DestroyIcon(_lastIconHandle);
+                _lastIconHandle = newIcon.Handle;
                 _trayIcon.Visible = true;
             }
             else
