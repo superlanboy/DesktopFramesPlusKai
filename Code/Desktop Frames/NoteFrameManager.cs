@@ -117,6 +117,9 @@ namespace Desktop_Frames
                 // Add visual state management and auto-save functionality
                 SetupNoteEditingBehavior(noteTextBox, frame);
 
+                // Dark Cut/Copy/Paste menu in dark mode (default WPF editing menu is always light).
+                DarkMenuTheme.AttachEditMenu(noteTextBox);
+
                 // Add to DockPanel (fills remaining space after title)
                 dockPanel.Children.Add(noteTextBox);
 

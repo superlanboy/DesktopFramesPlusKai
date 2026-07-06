@@ -89,7 +89,9 @@ namespace Desktop_Frames
 
 
             // 3. Start Remote Info System (Runs 25s later)
-            RemoteInfoManager.Initialize();
+            // DISABLED (fork): this phoned home to the UPSTREAM repo to check for a newer version,
+            // which is irrelevant for this fork. Skipping avoids a startup network call.
+            // RemoteInfoManager.Initialize();
 
             Instance = this; // Set singleton instance
         }
@@ -488,13 +490,23 @@ namespace Desktop_Frames
         public static void ShowHiddenFrame(string title)
         {
             var HiddenFrame = HiddenFrames.FirstOrDefault(f => f.Title == title);
-            if (HiddenFrame != null)
+            if (HiddenFrame == null) return;
+
+            try
             {
-                HiddenFrame.Window.Dispatcher.Invoke(() =>
+                var w = HiddenFrame.Window;
+                if (w == null)
                 {
-                    HiddenFrame.Window.Visibility = Visibility.Visible;
-                    HiddenFrame.Window.Activate();
-                    HiddenFrame.Window.Show();
+                    // Stale entry (frame was deleted) — just drop it, don't try to show it.
+                    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Hidden frame '{title}' no longer exists; removing stale entry.");
+                    return;
+                }
+
+                w.Dispatcher.Invoke(() =>
+                {
+                    w.Visibility = Visibility.Visible;
+                    w.Activate();
+                    w.Show();
                 });
 
                 var FrameData = Framemanager.GetFrameData().FirstOrDefault(f => f.Title == title);
@@ -502,8 +514,28 @@ namespace Desktop_Frames
                 {
                     Framemanager.UpdateFrameProperty(FrameData, "IsHidden", "false", $"Showed frame '{title}'");
                 }
-                HiddenFrames.Remove(HiddenFrame);
                 LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Showed frame '{title}'");
+            }
+            catch (Exception ex)
+            {
+                // e.g. the window was closed/deleted — remove the stale entry instead of crashing.
+                LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"ShowHiddenFrame '{title}' failed; removing stale entry: {ex.Message}");
+            }
+            finally
+            {
+                HiddenFrames.Remove(HiddenFrame);
+                Instance?.UpdateHiddenFramesMenu();
+                Instance?.UpdateTrayIcon();
+            }
+        }
+
+        /// <summary>Removes a frame from the hidden list (called when a frame is deleted) so it
+        /// doesn't linger in the "Show Hidden Frames" menu.</summary>
+        public static void RemoveHiddenFrame(NonActivatingWindow win, string title = null)
+        {
+            int removed = HiddenFrames.RemoveAll(f => (win != null && f.Window == win) || (title != null && f.Title == title));
+            if (removed > 0)
+            {
                 Instance?.UpdateHiddenFramesMenu();
                 Instance?.UpdateTrayIcon();
             }

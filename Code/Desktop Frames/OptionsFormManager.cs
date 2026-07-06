@@ -306,6 +306,66 @@ namespace Desktop_Frames
             CreateSectionHeader(c, "Desktop Icon Visibility", ColorStyle);
             CreateCheckBox(c, "Hide native desktop icons while program is running", "HideDesktopElementsOnStart", SettingsManager.HideDesktopElementsOnStart);
             CreateCheckBox(c, "Hide native desktop icons when Frames are hidden", "HideDesktopElementsOnAllFramesHide", SettingsManager.HideDesktopElementsOnAllFramesHide);
+            CreateCheckBox(c, "Double-click empty desktop to show/hide desktop icons", "ToggleDesktopIconsOnDoubleClick", SettingsManager.ToggleDesktopIconsOnDoubleClick);
+
+            // --- NEW: Frames behavior ---
+            CreateSectionHeader(c, "Frames", ColorStyle);
+            CreateCheckBox(c, "Enable Show/Hide all frames hotkey", "EnableToggleFramesHotkey", SettingsManager.EnableToggleFramesHotkey);
+            CreateCheckBox(c, "Striped rows in Portal Details view", "PortalDetailsStriped", SettingsManager.PortalDetailsStriped);
+
+            // Customizable combo for the Show/Hide-all hotkey (press-to-capture).
+            string ToggleHotkeyDisp()
+            {
+                int dvk = SettingsManager.ToggleFramesKey;
+                if (dvk == 0) return "(none)";
+                string ml = (SettingsManager.ToggleFramesModifier ?? "").ToLower();
+                string disp = "";
+                if (ml.Contains("ctrl") || ml.Contains("control")) disp += "Ctrl+";
+                if (ml.Contains("alt")) disp += "Alt+";
+                if (ml.Contains("shift")) disp += "Shift+";
+                if (ml.Contains("win")) disp += "Win+";
+                return disp + KeyInterop.KeyFromVirtualKey(dvk).ToString();
+            }
+
+            Grid hkGrid = new Grid { Margin = new Thickness(15, 2, 0, 8) };
+            hkGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            hkGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            hkGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            TextBlock hkLbl = new TextBlock { Text = "Hotkey:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+            Grid.SetColumn(hkLbl, 0);
+
+            TextBox hkTxt = new TextBox { IsReadOnly = true, IsReadOnlyCaretVisible = false, VerticalAlignment = VerticalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), Text = ToggleHotkeyDisp() };
+            Grid.SetColumn(hkTxt, 1);
+
+            Button hkBtn = new Button { Content = "Set", Width = 64 };
+            Grid.SetColumn(hkBtn, 2);
+
+            // Capture via the global hook so setting the combo doesn't trigger it, and Win is allowed.
+            bool hkCapturing = false;
+            hkBtn.Click += (s, e) =>
+            {
+                hkCapturing = true; hkBtn.Content = "Press…"; hkTxt.Text = "Press a key combo…";
+                GlobalHotkeyManager.BeginHotkeyCapture((vk, mods) =>
+                {
+                    hkCapturing = false; hkBtn.Content = "Set";
+                    if (vk == 0) { hkTxt.Text = ToggleHotkeyDisp(); return; } // cancelled
+                    string ms = "";
+                    if ((mods & 1) != 0) ms += "ctrl+";
+                    if ((mods & 2) != 0) ms += "alt+";
+                    if ((mods & 4) != 0) ms += "shift+";
+                    if ((mods & 8) != 0) ms += "win+";
+                    SettingsManager.ToggleFramesModifier = ms.TrimEnd('+');
+                    SettingsManager.ToggleFramesKey = vk;
+                    hkTxt.Text = ToggleHotkeyDisp();
+                });
+            };
+            if (_optionsWindow != null) _optionsWindow.Closed += (s, e) => { if (hkCapturing) GlobalHotkeyManager.CancelHotkeyCapture(); };
+
+            hkGrid.Children.Add(hkLbl);
+            hkGrid.Children.Add(hkTxt);
+            hkGrid.Children.Add(hkBtn);
+            c.Children.Add(hkGrid);
 
 
 
@@ -859,6 +919,11 @@ namespace Desktop_Frames
                             DesktopIconManager.SetDesktopIconsVisible(!SettingsManager.HideDesktopElementsOnStart);
                         }
                         if (cb.Name == "HideDesktopElementsOnAllFramesHide") SettingsManager.HideDesktopElementsOnAllFramesHide = cb.IsChecked == true;
+                        if (cb.Name == "ToggleDesktopIconsOnDoubleClick") SettingsManager.ToggleDesktopIconsOnDoubleClick = cb.IsChecked == true;
+
+                        // NEW: Frames behavior
+                        if (cb.Name == "EnableToggleFramesHotkey") SettingsManager.EnableToggleFramesHotkey = cb.IsChecked == true;
+                        if (cb.Name == "PortalDetailsStriped") SettingsManager.PortalDetailsStriped = cb.IsChecked == true;
                     }
                     else if (child is Grid g)
                     {
@@ -1021,6 +1086,7 @@ namespace Desktop_Frames
                 if (tempPortalImageState != newPortalWatermarkState) TrayManager.reloadallFrames();
                 TrayManager.Instance?.UpdateTrayIcon();
                 Utility.UpdateFrameVisuals();
+                Framemanager.RefreshAllPortalDetails(); // apply global striping change to open portals
 
 				// --- NEW: Broadcast Idle Fade-Out Settings to all active frames ---
 				var allFrames = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>();

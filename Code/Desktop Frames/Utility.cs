@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices; // Added for DeleteObject
@@ -197,19 +198,46 @@ namespace Desktop_Frames
             );
         }
 
-        public static void ApplyTintAndColorToFrame(Window frame, string colorName = null)
+        /// <summary>
+        /// Resolves the transparency (tint opacity 0-100) for a frame: a per-frame "CustomTint"
+        /// override if one is set, otherwise the global default (SettingsManager.TintValue).
+        /// </summary>
+        public static int ResolveFrameTint(Window frame)
+        {
+            int def = SettingsManager.TintValue;
+            try
+            {
+                string frameId = (frame as FrameworkElement)?.Tag?.ToString();
+                if (string.IsNullOrEmpty(frameId)) return def;
+
+                var fd = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frameId);
+                if (fd == null) return def;
+
+                string ct = null;
+                try { ct = fd.CustomTint?.ToString(); } catch { }
+                if (!string.IsNullOrWhiteSpace(ct) && int.TryParse(ct, out int v))
+                    return Math.Max(0, Math.Min(100, v));
+            }
+            catch { }
+            return def;
+        }
+
+        public static void ApplyTintAndColorToFrame(Window frame, string colorName = null, int? tintOverride = null)
         {
             var frameControl = frame.Content as Border; // Matches your structure
             if (frameControl == null) return;
 
             string effectiveColor = colorName ?? SettingsManager.SelectedColor; // Fallback to global
 
-            LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.Settings,
-                $"ApplyTintAndColorToFrame: TintValue={SettingsManager.TintValue}, Color={effectiveColor}, Opacity={SettingsManager.TintValue / 100.0}");
+            // Per-frame tint override (Customize dialog) if provided; else resolve saved/global value.
+            int tint = tintOverride ?? ResolveFrameTint(frame);
 
-            // Use TintValue from SettingsManager to determine if tint is applied
-            frameControl.Background = SettingsManager.TintValue > 0
-                ? new SolidColorBrush(GetColorFromName(effectiveColor)) { Opacity = SettingsManager.TintValue / 100.0 }
+            LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.Settings,
+                $"ApplyTintAndColorToFrame: Tint={tint}, Color={effectiveColor}, Opacity={tint / 100.0}");
+
+            // Use the resolved tint to determine if/how tint is applied
+            frameControl.Background = tint > 0
+                ? new SolidColorBrush(GetColorFromName(effectiveColor)) { Opacity = tint / 100.0 }
                 : Brushes.Transparent;
 
             // TABS FEATURE: Refresh tab colors when frame color changes
@@ -540,8 +568,32 @@ namespace Desktop_Frames
         private const uint SHGFI_USEFILEATTRIBUTES = 0x10;
         private const uint SHGFI_LINKOVERLAY = 0x000008000; // Show shortcut overlay? Optional.
 
+        // --- Performance: cache shell icons/type-names by extension ---
+        // Most files of the same type share one icon, so we avoid a shell call per file.
+        // Types whose icon is per-file (executables, shortcuts, custom icons) are never cached.
+        private static readonly Dictionary<string, ImageSource> _extIconCache = new Dictionary<string, ImageSource>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, string> _extTypeNameCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly object _extCacheLock = new object();
+        private static readonly HashSet<string> _perFileIconExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        { ".exe", ".lnk", ".url", ".ico", ".cur", ".ani", ".scr", ".msc", ".cpl", ".appref-ms" };
+
         public static ImageSource GetShellIcon(string path, bool isFolder)
         {
+            // Fast path: reuse a cached icon for cacheable file types.
+            string cacheExt = null;
+            if (!isFolder && !string.IsNullOrEmpty(path))
+            {
+                string e = System.IO.Path.GetExtension(path);
+                if (!string.IsNullOrEmpty(e) && !_perFileIconExts.Contains(e))
+                {
+                    cacheExt = e.ToLowerInvariant();
+                    lock (_extCacheLock)
+                    {
+                        if (_extIconCache.TryGetValue(cacheExt, out var hit)) return hit;
+                    }
+                }
+            }
+
             try
             {
                 // 1. PATH CORRECTION
@@ -598,6 +650,11 @@ namespace Desktop_Frames
                 }
 
                 DeleteObject(shinfo.hIcon);
+
+                if (cacheExt != null && img != null)
+                {
+                    lock (_extCacheLock) { _extIconCache[cacheExt] = img; }
+                }
                 return img;
             }
             catch (Exception ex)
@@ -605,6 +662,64 @@ namespace Desktop_Frames
                 LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.IconHandling, $"GetShellIcon failed for {path}: {ex.Message}");
                 return null;
             }
+        }
+
+        // --- Details View helpers (Portal frame column data) ---
+        private const uint SHGFI_TYPENAME = 0x400;
+        private const uint FILE_ATTRIBUTE_NORMAL = 0x80;
+        private const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
+
+        /// <summary>
+        /// Returns the shell "Type" description (e.g. "Text Document", "File folder") like Explorer's Type column.
+        /// Uses SHGFI_USEFILEATTRIBUTES so it resolves by extension without touching the disk.
+        /// </summary>
+        public static string GetShellTypeName(string path, bool isFolder)
+        {
+            // Type name is resolved by extension (SHGFI_USEFILEATTRIBUTES), so cache it per extension.
+            string typeExt = isFolder ? null : System.IO.Path.GetExtension(path)?.ToLowerInvariant();
+            if (!string.IsNullOrEmpty(typeExt))
+            {
+                lock (_extCacheLock)
+                {
+                    if (_extTypeNameCache.TryGetValue(typeExt, out var cachedType)) return cachedType;
+                }
+            }
+
+            try
+            {
+                SHFILEINFO shinfo = new SHFILEINFO();
+                uint attr = isFolder ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL;
+                SHGetFileInfo(path, attr, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES);
+                string type = shinfo.szTypeName;
+                if (string.IsNullOrWhiteSpace(type))
+                {
+                    if (isFolder) return "File folder";
+                    string ext = System.IO.Path.GetExtension(path);
+                    type = string.IsNullOrEmpty(ext) ? "File" : ext.TrimStart('.').ToUpperInvariant() + " File";
+                }
+
+                if (!string.IsNullOrEmpty(typeExt))
+                {
+                    lock (_extCacheLock) { _extTypeNameCache[typeExt] = type; }
+                }
+                return type;
+            }
+            catch { return isFolder ? "File folder" : "File"; }
+        }
+
+        /// <summary>
+        /// Formats a byte count the way Explorer does (KB rounded up, MB/GB with one decimal).
+        /// </summary>
+        public static string FormatFileSize(long bytes)
+        {
+            if (bytes < 0) return "";
+            if (bytes < 1024) return bytes + " bytes";
+            double kb = bytes / 1024.0;
+            if (kb < 1024) return Math.Ceiling(kb).ToString("N0") + " KB";
+            double mb = kb / 1024.0;
+            if (mb < 1024) return mb.ToString("N1") + " MB";
+            double gb = mb / 1024.0;
+            return gb.ToString("N1") + " GB";
         }
 
 

@@ -835,7 +835,11 @@ namespace Desktop_Frames
         {
             if (panel == null) return;
 
-            panel.CacheMode = new BitmapCache { EnableClearType = false, RenderAtScale = 1.0, SnapsToDevicePixels = true };
+            // NOTE: Do NOT put a BitmapCache on the WrapPanel. It caches the entire panel into one
+            // offscreen bitmap sized to the full (scrollable) content. While a portal is being
+            // populated the panel width is transiently tiny, so items stack into a very tall column
+            // and WPF tries to allocate an enormous (possibly over-GPU-limit) bitmap — spiking memory
+            // and crashing on creation of large/awkward folders.
             panel.UseLayoutRounding = true;
 
             if (scrollViewer != null)

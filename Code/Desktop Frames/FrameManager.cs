@@ -1122,6 +1122,11 @@ namespace Desktop_Frames
 
                     var windows = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>();
                     var win = windows.FirstOrDefault(w => w.Tag?.ToString() == frame.Id?.ToString());
+
+                    // Drop it from the "Show Hidden Frames" list before closing, so a deleted-while-
+                    // hidden frame can't linger there and throw when unhidden.
+                    TrayManager.RemoveHiddenFrame(win, frame.Title?.ToString());
+
                     if (win != null) win.Close();
 
                     UpdateAllHeartContextMenus();
@@ -1157,6 +1162,7 @@ namespace Desktop_Frames
             exitItem.Click += (s, e) => System.Windows.Application.Current.Shutdown();
             menu.Items.Add(exitItem);
 
+            DarkMenuTheme.Apply(menu); // follow OS dark mode
             return menu;
         }
 
@@ -1482,6 +1488,7 @@ namespace Desktop_Frames
                 };
 
 
+                DarkMenuTheme.Apply(iconContextMenu); // follow OS dark mode
                 sp.ContextMenu = iconContextMenu;
             }
             catch (Exception ex)
@@ -2038,8 +2045,8 @@ namespace Desktop_Frames
                 };
                 iconContextMenu.Items.Add(miAlwaysAdmin);
 
-
-          sp.ContextMenu = iconContextMenu;
+                DarkMenuTheme.Apply(iconContextMenu); // follow OS dark mode
+                sp.ContextMenu = iconContextMenu;
             }
             catch (Exception ex)
             {
@@ -2737,6 +2744,7 @@ namespace Desktop_Frames
                         miMoveRight.IsEnabled = capturedIndex < tabs.Count - 1;
                     };
 
+                    DarkMenuTheme.Apply(tabContextMenu); // follow OS dark mode
                     tabButton.ContextMenu = tabContextMenu;
                     tabStack.Children.Add(tabButton);
                 }
@@ -4118,7 +4126,8 @@ namespace Desktop_Frames
 
 
             BackupManager.CleanLastDeletedFolder();
-            InterCore.Initialize();
+            // DISABLED (perf): see App.xaml.cs — InterCore's 1s registry poll + easter eggs are off.
+            // InterCore.Initialize();
 
             _options = new
             {
@@ -4465,7 +4474,6 @@ namespace Desktop_Frames
 
         public static void CreateFrame(dynamic frame, TargetChecker targetChecker)
         {
-
             // --- FIX: Declare Title TextBox EARLY ---
             TextBox titletb = new TextBox
             {
@@ -4478,6 +4486,7 @@ namespace Desktop_Frames
 
             // --- NEW: Declare Commit Action for robust saving ---
             Action CommitRename = null;
+            Action StartRename = null;   // begins inline title editing (used by Ctrl+click and the menu)
             // ---------------------------------------------------
 
             // Check for valid Portal Frame target folder
@@ -4606,8 +4615,10 @@ namespace Desktop_Frames
             };
 
 
-            dp.Children.Add(heart);
-            Panel.SetZIndex(heart, 100); // Ensure heart is above titleGrid to receive clicks
+            // NOTE: the heart (menu ☰) is added to the titleGrid later (after it's built) rather than
+            // docked into the DockPanel here — docking it reserved a left strip so the title-bar shading
+            // didn't extend under it. As a titleGrid overlay, the shading spans the full width.
+            Panel.SetZIndex(heart, 100); // Ensure heart is above titleGrid content to receive clicks
 
             // Store heart TextBlock reference for this frame
             _heartTextBlocks[frame] = heart;
@@ -4780,6 +4791,13 @@ namespace Desktop_Frames
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30, GridUnitType.Pixel) }); // Col 3: Lock Icon
                                                                                                                       // End of ctrl+click handler
             ContextMenu CnMnFramemanager = new ContextMenu();
+            DarkMenuTheme.Apply(CnMnFramemanager); // follow OS dark mode (implicit styles cascade to items added later)
+
+            // Rename (same inline title edit as Ctrl+click the title bar).
+            MenuItem miRenameFrame = new MenuItem { Header = "Rename Frame" };
+            miRenameFrame.Click += (s, e) => StartRename?.Invoke();
+            CnMnFramemanager.Items.Add(miRenameFrame);
+            CnMnFramemanager.Items.Add(new Separator());
         
             MenuItem miNewnoteFrame = new MenuItem { Header = "New Note Frame" };
         
@@ -4975,6 +4993,86 @@ namespace Desktop_Frames
                     catch { }
                 };
                 CnMnFramemanager.Items.Add(miOpenFolder);
+
+                // View mode toggle (Icons / Details) - Portal only
+                MenuItem miView = new MenuItem { Header = "View" };
+                // Safe read: a freshly-created frame is an ExpandoObject that may not have "ViewMode"
+                // yet (accessing a missing member throws; a loaded JObject would return null).
+                string currentView = "Icons";
+                try { if (frame.ViewMode?.ToString() == "Details") currentView = "Details"; } catch { }
+
+                MenuItem miViewIcons = new MenuItem { Header = "Icons", IsCheckable = true, IsChecked = currentView == "Icons" };
+                MenuItem miViewDetails = new MenuItem { Header = "Details", IsCheckable = true, IsChecked = currentView == "Details" };
+
+                miViewIcons.Click += (s, e) =>
+                {
+                    if (_portalFrames.TryGetValue((object)frame, out PortalFramemanager pm)) pm.SetViewMode("Icons");
+                    miViewIcons.IsChecked = true;
+                    miViewDetails.IsChecked = false;
+                };
+                miViewDetails.Click += (s, e) =>
+                {
+                    if (_portalFrames.TryGetValue((object)frame, out PortalFramemanager pm)) pm.SetViewMode("Details");
+                    miViewIcons.IsChecked = false;
+                    miViewDetails.IsChecked = true;
+                };
+
+                miView.Items.Add(miViewIcons);
+                miView.Items.Add(miViewDetails);
+                CnMnFramemanager.Items.Add(miView);
+
+                // Sort by (Portal icon view) - drives the same sort as Ctrl+click empty space.
+                int currentSort = 0;
+                try { int.TryParse(frame.SortMode?.ToString(), out currentSort); } catch { }
+                currentSort = Math.Max(0, Math.Min(3, currentSort));
+
+                MenuItem miSort = new MenuItem { Header = "Sort by" };
+                string[] sortNames = { "Name", "Date modified", "Type", "Size" };
+                var sortItems = new MenuItem[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    int idx = i;
+                    var mi = new MenuItem { Header = sortNames[i], IsCheckable = true, IsChecked = currentSort == i };
+                    mi.Click += (s, e) =>
+                    {
+                        if (_portalFrames.TryGetValue((object)frame, out PortalFramemanager pm)) pm.SetSortMode(idx);
+                        for (int j = 0; j < 4; j++) sortItems[j].IsChecked = (j == idx);
+                    };
+                    sortItems[i] = mi;
+                    miSort.Items.Add(mi);
+                }
+
+                // Direction (Ascending / Descending).
+                bool currentAsc = true;
+                try { currentAsc = (frame.SortAsc?.ToString() ?? "true").ToLower() != "false"; } catch { }
+                miSort.Items.Add(new Separator());
+                var miAsc = new MenuItem { Header = "Ascending", IsCheckable = true, IsChecked = currentAsc };
+                var miDesc = new MenuItem { Header = "Descending", IsCheckable = true, IsChecked = !currentAsc };
+                miAsc.Click += (s, e) =>
+                {
+                    if (_portalFrames.TryGetValue((object)frame, out PortalFramemanager pm)) pm.SetSortAscending(true);
+                    miAsc.IsChecked = true; miDesc.IsChecked = false;
+                };
+                miDesc.Click += (s, e) =>
+                {
+                    if (_portalFrames.TryGetValue((object)frame, out PortalFramemanager pm)) pm.SetSortAscending(false);
+                    miAsc.IsChecked = false; miDesc.IsChecked = true;
+                };
+                miSort.Items.Add(miAsc);
+                miSort.Items.Add(miDesc);
+
+                // Keep the ticks in sync (e.g. if the sort was changed via Ctrl+click).
+                miSort.SubmenuOpened += (s, e) =>
+                {
+                    if (_portalFrames.TryGetValue((object)frame, out PortalFramemanager pm))
+                    {
+                        int cur = pm.GetSortMode();
+                        for (int j = 0; j < 4; j++) sortItems[j].IsChecked = (j == cur);
+                        bool asc = pm.GetSortAscending();
+                        miAsc.IsChecked = asc; miDesc.IsChecked = !asc;
+                    }
+                };
+                CnMnFramemanager.Items.Add(miSort);
             }
 
             CnMnFramemanager.Items.Add(new Separator());
@@ -5532,7 +5630,7 @@ namespace Desktop_Frames
             }
             Label titlelabel = new Label
             {
-                Content = frame.Title.ToString(),
+                Content = BuildTitleContent(frame.Title.ToString(), GetFrameHotkeyDisplay(frame), titleTextBrush, titleFontSize, frame.ItemsType?.ToString(), GlyphTooltipForFrame(frame)),
                 Foreground = titleTextBrush, // Changed from hardcoded White
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -5542,6 +5640,12 @@ namespace Desktop_Frames
             };
             Grid.SetColumn(titlelabel, 1);
             titleGrid.Children.Add(titlelabel);
+            try { string tId = frame.Id?.ToString(); if (!string.IsNullOrEmpty(tId)) _frameTitles[tId] = (titlelabel, titleTextBrush, titleFontSize); } catch { }
+
+            // Portal indicator: a small badge (the portal watermark scaled down) at the far-left of
+            // the title bar so Portal frames are visually distinct from Data/Note frames.
+            // The per-type title glyph (folder / note / shortcut) is rendered inside BuildTitleContent,
+            // just to the left of the title text.
 
             // --- DYNAMIC STATE UPDATES (ON MENU OPEN) ---
             MenuItem miExportAllToDesktop = null;
@@ -6041,8 +6145,8 @@ namespace Desktop_Frames
                     frame.Title = finalTitle;
                 }
 
-                // Update UI
-                titlelabel.Content = finalTitle;
+                // Update UI (keep the hotkey suffix, if any)
+                titlelabel.Content = BuildTitleContent(finalTitle, GetFrameHotkeyDisplay(frame), titleTextBrush, titleFontSize, frame.ItemsType?.ToString(), GlyphTooltipForFrame(frame));
                 win.Title = finalTitle;
                 titletb.Visibility = Visibility.Collapsed;
                 titlelabel.Visibility = Visibility.Visible;
@@ -6051,6 +6155,22 @@ namespace Desktop_Frames
                 FrameDataManager.SaveFrameData();
                 win.EndKeyboardInteractiveEdit();
                 LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Rename committed: {finalTitle}");
+            };
+
+            // Begin inline title editing (shared by Ctrl+click the title bar and the "Rename Frame" menu).
+            StartRename = () =>
+            {
+                try
+                {
+                    titletb.Text = frame.Title?.ToString() ?? "";
+                    titlelabel.Visibility = Visibility.Collapsed;
+                    titletb.Visibility = Visibility.Visible;
+                    win.BeginKeyboardInteractiveEdit(titletb);
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"StartRename failed: {ex.Message}");
+                }
             };
 
             // 2. Wire up Events to use the central logic
@@ -6165,6 +6285,13 @@ namespace Desktop_Frames
             Grid.SetColumn(lockIcon, 3); // Moved to Column 3
             Grid.SetRow(lockIcon, 0);
             titleGrid.Children.Add(lockIcon);
+            // Overlay the heart (menu ☰) on the shaded titleGrid (spans all columns, left-aligned) so
+            // the title-bar shading extends behind it instead of leaving a notch.
+            Grid.SetColumn(heart, 0);
+            Grid.SetColumnSpan(heart, titleGrid.ColumnDefinitions.Count);
+            Grid.SetRow(heart, 0);
+            titleGrid.Children.Add(heart);
+
             // Add the titleGrid to the DockPanel
             DockPanel.SetDock(titleGrid, Dock.Top);
             dp.Children.Add(titleGrid);
@@ -6356,11 +6483,8 @@ namespace Desktop_Frames
                 {
                     if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
                     {
-                        // Rename frame (swapped from double-click)
-                        titletb.Text = titlelabel.Content.ToString();
-                        titlelabel.Visibility = Visibility.Collapsed;
-                        titletb.Visibility = Visibility.Visible;
-                        win.BeginKeyboardInteractiveEdit(titletb);
+                        // Rename frame (swapped from double-click) — shared with the "Rename Frame" menu.
+                        StartRename?.Invoke();
                         LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation, $"Focus set to title textbox for frame: {frame.Title}");
                         e.Handled = true;
                     }
@@ -6520,6 +6644,9 @@ namespace Desktop_Frames
             // --- PERFORMANCE TWEAK: Hardware Acceleration & Safe UI Culling ---
             IconManager.OptimizeFramePanel(wpcont, wpcontscr);
 
+            // Theme the icon/normal view scrollbar to blend with the frame (matches the Details view).
+            ThemedScrollBar.Apply(wpcontscr, (titleTextBrush as SolidColorBrush)?.Color ?? System.Windows.Media.Colors.White);
+
             // Προσθήκη watermark για Portal frames
             if (frame.ItemsType?.ToString() == "Portal")
             {
@@ -6535,7 +6662,50 @@ namespace Desktop_Frames
                     };
                 }
             }
-            dp.Children.Add(wpcontscr);
+            // --- Details View (Portal frames only): a ListView/GridView hosted alongside the icon ScrollViewer.
+            // Both live in a single-cell Grid and we toggle Visibility between them. Non-portal frames are untouched.
+            ListView portalDetailsView = null;
+            TextBlock portalSortHeader = null;
+            if (frame.ItemsType?.ToString() == "Portal")
+            {
+                portalDetailsView = new ListView
+                {
+                    Visibility = Visibility.Collapsed,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Padding = new Thickness(0),   // no chrome padding above the column header
+                    Margin = new Thickness(0)
+                };
+
+                Grid portalContentHost = new Grid();
+                portalContentHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // sort heading (icon view)
+                portalContentHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                // Icon-view "Sorted by ..." heading (PortalFramemanager updates the text + visibility).
+                portalSortHeader = new TextBlock
+                {
+                    Foreground = titleTextBrush,
+                    FontSize = 11,
+                    Opacity = 0.75,
+                    Margin = new Thickness(8, 2, 8, 2),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Visibility = Visibility.Collapsed,
+                    IsHitTestVisible = false
+                };
+                Grid.SetRow(portalSortHeader, 0);
+                portalContentHost.Children.Add(portalSortHeader);
+
+                Grid.SetRow(wpcontscr, 1);
+                Grid.SetRow(portalDetailsView, 1);
+                portalContentHost.Children.Add(wpcontscr);
+                portalContentHost.Children.Add(portalDetailsView);
+                dp.Children.Add(portalContentHost);
+            }
+            else
+            {
+                dp.Children.Add(wpcontscr);
+            }
 
             void InitContent()
             {
@@ -6677,7 +6847,7 @@ namespace Desktop_Frames
                 {
                     try
                     {
-                        var portalManager = new PortalFramemanager(frame, wpcont);
+                        var portalManager = new PortalFramemanager(frame, wpcont, portalDetailsView, portalSortHeader);
                         _portalFrames[frame] = portalManager;
 
                         // --- BULLETPROOF FIX: Decoupled Sort Cycle on CTRL + Click ---
@@ -7742,6 +7912,16 @@ namespace Desktop_Frames
             newframeDict["TitleTextSize"] = "Medium";
             newframeDict["FrameBorderColor"] = null;
             newframeDict["FrameBorderThickness"] = 2;
+            // Fork-added per-frame keys — initialize so new (ExpandoObject) frames match loaded ones
+            // and dynamic access never throws "does not contain a definition".
+            newframeDict["ViewMode"] = "Icons";
+            newframeDict["ColumnWidths"] = "";
+            newframeDict["DetailsSort"] = "";
+            newframeDict["DetailsGroup"] = "None";
+            newframeDict["CustomTint"] = "";
+            newframeDict["DetailsStriped"] = ""; // "" = follow global, "On"/"Off" = per-frame override
+            newframeDict["HotkeyVk"] = "0";
+            newframeDict["HotkeyMods"] = "0";
             // TABS FEATURE: Initialize tab properties for new frames
             newframeDict["TabsEnabled"] = "false";  // Default to no tabs
             newframeDict["CurrentTab"] = 0;         // Default to first tab
@@ -9094,6 +9274,302 @@ namespace Desktop_Frames
         }
 
 
+        /// <summary>
+        /// Public wrapper so external views (e.g. the Portal Details ListView) can launch an item
+        /// through the same code path as an icon click, preserving launch animations/feedback.
+        /// </summary>
+        public static void LaunchItemFromExternal(StackPanel sp, string path, bool isFolder, string arguments = null)
+        {
+            LaunchItem(sp, path, isFolder, arguments);
+        }
+
+        /// <summary>
+        /// Re-applies shared styling + refreshes rows for a Portal frame's Details view.
+        /// Matches by frame Id since dictionary keys can be stale references.
+        /// </summary>
+        public static void RefreshPortalDetails(string frameId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(frameId)) return;
+                var entry = _portalFrames.FirstOrDefault(kvp => kvp.Key?.Id?.ToString() == frameId);
+                entry.Value?.RefreshDetails();
+            }
+            catch { }
+        }
+
+        /// <summary>Refreshes the Details view of every open portal frame (e.g. after a global option change).</summary>
+        public static void RefreshAllPortalDetails()
+        {
+            foreach (var pm in _portalFrames.Values) { try { pm.RefreshDetails(); } catch { } }
+        }
+
+        // ===================== Per-frame focus hotkeys =====================
+        // Modifier bitmask: Ctrl=1, Alt=2, Shift=4, Win=8.
+        private static readonly object _frameHotkeyLock = new object();
+        private static List<(int Vk, int Mods, string FrameId)> _frameHotkeyCache = new List<(int, int, string)>();
+
+        /// <summary>Rebuilds the per-frame hotkey lookup from frame data. Cheap; called on any data save/load.</summary>
+        public static void RefreshFrameHotkeys()
+        {
+            var list = new List<(int, int, string)>();
+            try
+            {
+                foreach (var frame in FrameDataManager.FrameData)
+                {
+                    int vk = 0, mods = 0;
+                    try { if (frame.HotkeyVk != null) vk = Convert.ToInt32(frame.HotkeyVk.ToString()); } catch { }
+                    if (vk == 0) continue;
+                    try { if (frame.HotkeyMods != null) mods = Convert.ToInt32(frame.HotkeyMods.ToString()); } catch { }
+                    if (mods == 0) continue;
+                    string id = null; try { id = frame.Id?.ToString(); } catch { }
+                    if (!string.IsNullOrEmpty(id)) list.Add((vk, mods, id));
+                }
+            }
+            catch { }
+            lock (_frameHotkeyLock) { _frameHotkeyCache = list; }
+        }
+
+        // Frame title labels, so the hotkey suffix in the title can be refreshed when it changes.
+        private static readonly Dictionary<string, (System.Windows.Controls.Label Label, System.Windows.Media.Brush Brush, double FontSize)> _frameTitles
+            = new Dictionary<string, (System.Windows.Controls.Label, System.Windows.Media.Brush, double)>();
+
+        /// <summary>Formats a frame's focus hotkey as "Ctrl+Alt+M" (or null if none is set).</summary>
+        public static string GetFrameHotkeyDisplay(dynamic frame)
+        {
+            try
+            {
+                int vk = 0, mods = 0;
+                try { var v = frame.HotkeyVk?.ToString(); if (!string.IsNullOrWhiteSpace(v)) int.TryParse(v, out vk); } catch { }
+                if (vk == 0) return null;
+                try { var v = frame.HotkeyMods?.ToString(); if (!string.IsNullOrWhiteSpace(v)) int.TryParse(v, out mods); } catch { }
+                string s = "";
+                if ((mods & 1) != 0) s += "Ctrl+";
+                if ((mods & 2) != 0) s += "Alt+";
+                if ((mods & 4) != 0) s += "Shift+";
+                if ((mods & 8) != 0) s += "Win+";
+                return s + System.Windows.Input.KeyInterop.KeyFromVirtualKey(vk).ToString();
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Builds a frame-title label's content: plain title, or title + a dimmer/smaller
+        /// "[shortcut]" suffix when a focus hotkey is assigned.</summary>
+        /// <summary>Title-bar type glyph (monochrome, so it takes the title colour). Portal is drawn as
+        /// a vector spiral instead — see BuildTypeIcon.</summary>
+        private static string GlyphForType(string type) => type switch
+        {
+            "Note" => "✎",   // ✎ pencil
+            "Data" => "↗",   // ↗ shortcut/launch arrow
+            _ => ""
+        };
+
+        /// <summary>
+        /// Builds the per-type title icon, coloured with the frame's title brush and muted to the same
+        /// opacity as the other title-bar icons (Menu Tint). Portal = a drawn spiral (themeable swirl);
+        /// Note/Data = monochrome glyphs.
+        /// </summary>
+        private static FrameworkElement BuildTypeIcon(string frameType, System.Windows.Media.Brush baseBrush, double baseFontSize, string tooltip)
+        {
+            double size = Math.Max(16.0, baseFontSize + 3);
+            FrameworkElement el;
+
+            if (frameType == "Portal")
+            {
+                el = BuildSpiralIcon(baseBrush, size);
+            }
+            else
+            {
+                string glyph = GlyphForType(frameType);
+                if (string.IsNullOrEmpty(glyph)) return null;
+                el = new TextBlock { Text = glyph, Foreground = baseBrush, FontSize = size };
+            }
+
+            el.Opacity = Math.Max(0.0, Math.Min(1.0, SettingsManager.MenuTintValue / 100.0)); // match the menu/lock icons
+            el.VerticalAlignment = VerticalAlignment.Center;
+            el.Margin = new Thickness(0, 0, 6, 0);
+            if (!string.IsNullOrEmpty(tooltip)) el.ToolTip = tooltip;
+            return el;
+        }
+
+        /// <summary>A small Archimedean-spiral "portal" glyph, stroked in <paramref name="brush"/>.</summary>
+        private static FrameworkElement BuildSpiralIcon(System.Windows.Media.Brush brush, double size)
+        {
+            double c = size / 2.0;
+            double turns = 2.6, maxTheta = turns * 2 * Math.PI;
+            double a = (size * 0.44) / maxTheta;
+            int steps = 56;
+
+            var fig = new System.Windows.Media.PathFigure();
+            var poly = new System.Windows.Media.PolyLineSegment();
+            for (int i = 0; i <= steps; i++)
+            {
+                double th = maxTheta * i / steps;
+                double r = a * th;
+                var p = new System.Windows.Point(c + r * Math.Cos(th), c + r * Math.Sin(th));
+                if (i == 0) fig.StartPoint = p; else poly.Points.Add(p);
+            }
+            fig.Segments.Add(poly);
+            var geo = new System.Windows.Media.PathGeometry();
+            geo.Figures.Add(fig);
+
+            return new System.Windows.Shapes.Path
+            {
+                Data = geo,
+                Stroke = brush,
+                StrokeThickness = 1.4,
+                StrokeStartLineCap = System.Windows.Media.PenLineCap.Round,
+                StrokeEndLineCap = System.Windows.Media.PenLineCap.Round,
+                Width = size,
+                Height = size,
+                Stretch = System.Windows.Media.Stretch.None
+            };
+        }
+
+        private static object BuildTitleContent(string title, string hotkey, System.Windows.Media.Brush baseBrush, double baseFontSize,
+                                                string frameType = null, string glyphTooltip = null)
+        {
+            // Title text (+ optional hotkey suffix).
+            var titleTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+            titleTb.Inlines.Add(new System.Windows.Documents.Run(title));
+            if (!string.IsNullOrEmpty(hotkey))
+            {
+                System.Windows.Media.Brush dim = System.Windows.Media.Brushes.Silver;
+                if (baseBrush is SolidColorBrush scb) dim = new SolidColorBrush(scb.Color) { Opacity = 0.6 };
+                titleTb.Inlines.Add(new System.Windows.Documents.Run($"  [{hotkey}]")
+                {
+                    Foreground = dim,
+                    FontSize = Math.Max(8.0, baseFontSize - 2),
+                    FontStyle = FontStyles.Italic
+                });
+            }
+
+            var iconEl = BuildTypeIcon(frameType, baseBrush, baseFontSize, glyphTooltip);
+            if (iconEl == null) return titleTb;
+
+            // Prepend the type icon so it sits just to the LEFT of the (centred) title.
+            var sp = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            sp.Children.Add(iconEl);
+            sp.Children.Add(titleTb);
+            return sp;
+        }
+
+        /// <summary>The glyph tooltip for a frame — the folder path for Portals, else null.</summary>
+        private static string GlyphTooltipForFrame(dynamic frame)
+        {
+            try { if (frame?.ItemsType?.ToString() == "Portal") return frame.Path?.ToString(); } catch { }
+            return null;
+        }
+
+        /// <summary>Re-renders a frame's title (e.g. after its hotkey changes) so the suffix updates live.</summary>
+        public static void RefreshFrameTitle(string frameId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(frameId) || !_frameTitles.TryGetValue(frameId, out var t) || t.Label == null) return;
+                dynamic live = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frameId);
+                if (live == null) return;
+                string title = live.Title?.ToString() ?? "";
+                t.Label.Content = BuildTitleContent(title, GetFrameHotkeyDisplay(live), t.Brush, t.FontSize, live.ItemsType?.ToString(), GlyphTooltipForFrame(live));
+            }
+            catch { }
+        }
+
+        /// <summary>Fast, thread-safe check used by the keyboard hook to decide whether to swallow the key.</summary>
+        public static bool HasFrameHotkey(int vk, int mods)
+        {
+            lock (_frameHotkeyLock)
+            {
+                foreach (var e in _frameHotkeyCache)
+                    if (e.Vk == vk && e.Mods == mods) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Resolves the frame bound to a hotkey and focuses it (call on the UI thread).</summary>
+        public static void FocusFrameByHotkey(int vk, int mods)
+        {
+            // Collect ALL frames sharing this hotkey (a hotkey may be assigned to a group).
+            var ids = new List<string>();
+            lock (_frameHotkeyLock)
+            {
+                foreach (var e in _frameHotkeyCache)
+                    if (e.Vk == vk && e.Mods == mods) ids.Add(e.FrameId);
+            }
+            if (ids.Count == 0) return;
+
+            var wins = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>()
+                .Where(w => { string t = w.Tag?.ToString(); return t != null && ids.Contains(t); })
+                .ToList();
+            if (wins.Count == 0) return;
+
+            ToggleFocusFrames(wins, vk + ":" + mods);
+        }
+
+        // Tracks which hotkey group is currently summoned (for the press-again-to-hide toggle).
+        private static string _peekedHotkeyKey;
+
+        /// <summary>
+        /// Focus-hotkey behavior for one or more frames sharing a hotkey. First press shows/raises
+        /// them all and makes the top one a real foreground window (so the group participates in
+        /// normal z-order and drops behind whatever the user clicks next). Pressing again while the
+        /// group is still up hides them all.
+        /// </summary>
+        public static void ToggleFocusFrames(List<NonActivatingWindow> wins, string key)
+        {
+            if (wins == null || wins.Count == 0) return;
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                try
+                {
+                    // Second press (group still up) -> hide them all.
+                    if (_peekedHotkeyKey == key && wins.Any(w => w.IsVisible))
+                    {
+                        _peekedHotkeyKey = null;
+                        foreach (var w in wins)
+                        {
+                            try { w.EnableFocusPrevention(true); } catch { }
+                            w.Hide();
+                        }
+                        return;
+                    }
+
+                    if (_areFramesAutoHidden) { WakeUpFrames(); await System.Threading.Tasks.Task.Delay(50); }
+
+                    // Show + raise every frame in the group.
+                    foreach (var w in wins)
+                    {
+                        if (!w.IsVisible) w.Show();
+                        w.Topmost = true;
+                        w.Topmost = false;
+                    }
+
+                    // Make the last-raised frame a real foreground window so the group participates in
+                    // normal z-order (and thus drops behind whatever the user activates next).
+                    var lead = wins[wins.Count - 1];
+                    lead.ForceForeground();
+                    lead.Activate();
+
+                    _peekedHotkeyKey = key;
+
+                    // When the lead loses focus, restore its non-activating behavior and clear the peek
+                    // state so the next press re-summons the group.
+                    EventHandler deactivatedHandler = null;
+                    deactivatedHandler = (s, args) =>
+                    {
+                        if (_peekedHotkeyKey == key) _peekedHotkeyKey = null;
+                        try { lead.EnableFocusPrevention(true); } catch { }
+                        lead.Deactivated -= deactivatedHandler;
+                    };
+                    lead.Deactivated += deactivatedHandler;
+                }
+                catch (Exception ex)
+                {
+                    LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.UI, $"ToggleFocusFrames error: {ex.Message}");
+                }
+            });
+        }
+
         private static void LaunchItem(StackPanel sp, string path, bool isFolder, string arguments)
         {
             try
@@ -9412,18 +9888,14 @@ namespace Desktop_Frames
                         if (!string.IsNullOrEmpty(targetPath))
                         {
                             // Check if target is UNC path
-                            bool isUncPath = targetPath.StartsWith("\\\\");
-                            LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.IconHandling, $"Shortcut {filePath} targets {targetPath}, IsUNC: {isUncPath}");
-                            return isUncPath;
+                            return targetPath.StartsWith("\\\\");
                         }
                     }
                 }
                 else
                 {
-                    // For direct paths, check if it's UNC
-                    bool isUncPath = filePath.StartsWith("\\\\");
-                    LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.IconHandling, $"Direct path {filePath}, IsUNC: {isUncPath}");
-                    return isUncPath;
+                    // For direct paths, check if it's UNC (hot path: no per-item logging)
+                    return filePath.StartsWith("\\\\");
                 }
             }
             catch (Exception ex)

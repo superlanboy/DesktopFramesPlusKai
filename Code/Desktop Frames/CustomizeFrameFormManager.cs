@@ -28,6 +28,16 @@ namespace Desktop_Frames
         private ComboBox _cmbCustomLaunchEffect;
         private ComboBox _cmbframeBorderColor;
         private NumericTextBox _nudframeBorderThickness;
+        private CheckBox _chkOverrideTint;
+        private Slider _sldTransparency;
+        private TextBlock _lblTransparencyValue;
+        private CheckBox _chkOverrideStriped; // Portal-only: override global striped-rows default
+        private CheckBox _chkStriped;
+        private TextBox _txtHotkey;
+        private Button _btnSetHotkey;
+        private int _hotkeyVk;
+        private int _hotkeyMods;
+        private bool _capturingHotkey;
         private ComboBox _cmbTitleTextColor;
         private ComboBox _cmbTitleTextSize;
         private CheckBox _chkBoldTitleText;
@@ -435,9 +445,236 @@ namespace Desktop_Frames
             CreateDropdownField(frameStack, "Custom Launch Effect:", _validEffects, out _cmbCustomLaunchEffect);
             CreateDropdownField(frameStack, "Frame Border Color:", _validColors, out _cmbframeBorderColor);
             CreateNumericField(frameStack, "Frame Border Thickness:", 0, 5, out _nudframeBorderThickness);
+            CreateTransparencyField(frameStack);
+            bool isPortal = false;
+            try { isPortal = _frame?.ItemsType?.ToString() == "Portal"; } catch { }
+            if (isPortal) CreateStripedField(frameStack);
+            CreateHotkeyField(frameStack);
 
 			frameGroupBox.Content = frameStack;
             parent.Children.Add(frameGroupBox);
+        }
+
+        /// <summary>
+        /// Per-frame focus hotkey: press-to-capture a global shortcut that brings this frame to the front.
+        /// </summary>
+        private void CreateHotkeyField(StackPanel parent)
+        {
+            Grid g = new Grid { Margin = new Thickness(0, 4, 0, 5) };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            TextBlock label = new TextBlock
+            {
+                Text = "Focus Hotkey:",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(95, 99, 104)),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(16, 0, 0, 0)
+            };
+            Grid.SetColumn(label, 0);
+
+            _txtHotkey = new TextBox
+            {
+                IsReadOnly = true,
+                IsReadOnlyCaretVisible = false,
+                Text = "None",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            Grid.SetColumn(_txtHotkey, 1);
+
+            _btnSetHotkey = new Button { Content = "Set", Width = 64, Margin = new Thickness(0, 0, 6, 0) };
+            Grid.SetColumn(_btnSetHotkey, 2);
+
+            Button btnClear = new Button { Content = "Clear", Width = 64 };
+            Grid.SetColumn(btnClear, 3);
+
+            // Capture the combo inside the global hook (see GlobalHotkeyManager.BeginHotkeyCapture):
+            // this prevents the combo from triggering existing hotkeys while setting, and allows the
+            // Windows key (WPF's Keyboard.Modifiers doesn't report Win).
+            _btnSetHotkey.Click += (s, e) =>
+            {
+                _capturingHotkey = true;
+                _btnSetHotkey.Content = "Press…";
+                _txtHotkey.Text = "Press a key combo…";
+                GlobalHotkeyManager.BeginHotkeyCapture((vk, mods) =>
+                {
+                    _capturingHotkey = false;
+                    _btnSetHotkey.Content = "Set";
+                    if (vk == 0) { _txtHotkey.Text = HotkeyDisplay(_hotkeyMods, _hotkeyVk); return; } // cancelled
+                    _hotkeyVk = vk;
+                    _hotkeyMods = mods;
+                    _txtHotkey.Text = HotkeyDisplay(mods, vk);
+                });
+            };
+
+            btnClear.Click += (s, e) =>
+            {
+                if (_capturingHotkey) { GlobalHotkeyManager.CancelHotkeyCapture(); _capturingHotkey = false; }
+                _hotkeyVk = 0; _hotkeyMods = 0;
+                _btnSetHotkey.Content = "Set";
+                _txtHotkey.Text = "None";
+            };
+
+            // Safety: if the dialog closes mid-capture, don't leave the hook swallowing keys.
+            this.Closed += (s, e) => { if (_capturingHotkey) GlobalHotkeyManager.CancelHotkeyCapture(); };
+
+            g.Children.Add(label);
+            g.Children.Add(_txtHotkey);
+            g.Children.Add(_btnSetHotkey);
+            g.Children.Add(btnClear);
+            parent.Children.Add(g);
+        }
+
+        private string HotkeyDisplay(int mods, int vk)
+        {
+            if (vk == 0) return "None";
+            string s = "";
+            if ((mods & 1) != 0) s += "Ctrl+";
+            if ((mods & 2) != 0) s += "Alt+";
+            if ((mods & 4) != 0) s += "Shift+";
+            if ((mods & 8) != 0) s += "Win+";
+            return s + KeyInterop.KeyFromVirtualKey(vk).ToString();
+        }
+
+        /// <summary>
+        /// Per-frame transparency: a checkbox to override the global default, plus a 0-100 slider.
+        /// When unchecked, the frame follows the global "Frame Tint" default.
+        /// </summary>
+        private void CreateTransparencyField(StackPanel parent)
+        {
+            _chkOverrideTint = new CheckBox
+            {
+                Content = "Override default transparency",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(95, 99, 104)),
+                Margin = new Thickness(16, 8, 0, 2),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            Grid fieldGrid = new Grid { Margin = new Thickness(0, 2, 0, 5) };
+            fieldGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+            fieldGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            fieldGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+
+            TextBlock label = new TextBlock
+            {
+                Text = "Frame Transparency:",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(95, 99, 104)),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(16, 0, 0, 0)
+            };
+            Grid.SetColumn(label, 0);
+
+            _sldTransparency = new Slider
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = SettingsManager.TintValue,
+                IsSnapToTickEnabled = true,
+                TickFrequency = 1,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsEnabled = false
+            };
+            Grid.SetColumn(_sldTransparency, 1);
+
+            _lblTransparencyValue = new TextBlock
+            {
+                Text = ((int)_sldTransparency.Value).ToString(),
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(95, 99, 104)),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(6, 0, 0, 0)
+            };
+            Grid.SetColumn(_lblTransparencyValue, 2);
+
+            // Enable the slider only when overriding; live-preview on change.
+            _chkOverrideTint.Checked += (s, e) => { _sldTransparency.IsEnabled = true; PreviewTransparency(); };
+            _chkOverrideTint.Unchecked += (s, e) => { _sldTransparency.IsEnabled = false; PreviewTransparency(); };
+            _sldTransparency.ValueChanged += (s, e) =>
+            {
+                if (_lblTransparencyValue != null) _lblTransparencyValue.Text = ((int)_sldTransparency.Value).ToString();
+                PreviewTransparency();
+            };
+
+            fieldGrid.Children.Add(label);
+            fieldGrid.Children.Add(_sldTransparency);
+            fieldGrid.Children.Add(_lblTransparencyValue);
+
+            parent.Children.Add(_chkOverrideTint);
+            parent.Children.Add(fieldGrid);
+        }
+
+        private int? GetTintOverride() =>
+            (_chkOverrideTint?.IsChecked ?? false) ? (int?)(int)_sldTransparency.Value : null;
+
+        /// <summary>
+        /// Per-frame zebra-striping (Portal Details view): a checkbox to override the global default,
+        /// plus a checkbox for the on/off value. Unchecked override => follow SettingsManager.PortalDetailsStriped.
+        /// </summary>
+        private void CreateStripedField(StackPanel parent)
+        {
+            _chkOverrideStriped = new CheckBox
+            {
+                Content = "Override default row striping",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(95, 99, 104)),
+                Margin = new Thickness(16, 8, 0, 2),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            _chkStriped = new CheckBox
+            {
+                Content = "Striped rows",
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromRgb(95, 99, 104)),
+                Margin = new Thickness(36, 0, 0, 6),
+                VerticalAlignment = VerticalAlignment.Center,
+                IsEnabled = false,
+                IsChecked = SettingsManager.PortalDetailsStriped
+            };
+
+            _chkOverrideStriped.Checked += (s, e) => _chkStriped.IsEnabled = true;
+            _chkOverrideStriped.Unchecked += (s, e) => { _chkStriped.IsEnabled = false; _chkStriped.IsChecked = SettingsManager.PortalDetailsStriped; };
+
+            parent.Children.Add(_chkOverrideStriped);
+            parent.Children.Add(_chkStriped);
+        }
+
+        /// <summary>Per-frame striped value: "On"/"Off" when overriding, else "" (follow global).</summary>
+        private string GetStripedValue() =>
+            (_chkOverrideStriped?.IsChecked ?? false) ? ((_chkStriped?.IsChecked ?? false) ? "On" : "Off") : "";
+
+        /// <summary>Live-preview the transparency on the actual frame window while adjusting.</summary>
+        private void PreviewTransparency()
+        {
+            try
+            {
+                string frameId = _frame.Id?.ToString();
+                if (string.IsNullOrEmpty(frameId)) return;
+                var win = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>()
+                    .FirstOrDefault(w => w.Tag?.ToString() == frameId);
+                if (win == null) return;
+
+                string customColor = GetDropdownValue(_cmbCustomColor);
+                string effColor = (!string.IsNullOrEmpty(customColor) && customColor != "Default") ? customColor : SettingsManager.SelectedColor;
+                Utility.ApplyTintAndColorToFrame(win, effColor, GetTintOverride());
+            }
+            catch { }
         }
 
         private void CreateTitleSection(StackPanel parent)
@@ -624,6 +861,22 @@ namespace Desktop_Frames
                 _nudframeBorderThickness.Value = 0;
                 _nudIconSpacing.Value = 5;
 
+                // Reset per-frame transparency to "follow global default"
+                _chkOverrideTint.IsChecked = false;
+                _sldTransparency.Value = SettingsManager.TintValue;
+
+                // Reset per-frame striping to "follow global default"
+                if (_chkOverrideStriped != null)
+                {
+                    _chkOverrideStriped.IsChecked = false;
+                    _chkStriped.IsChecked = SettingsManager.PortalDetailsStriped;
+                }
+
+                // Reset focus hotkey
+                _hotkeyVk = 0; _hotkeyMods = 0; _capturingHotkey = false;
+                if (_btnSetHotkey != null) _btnSetHotkey.Content = "Set";
+                if (_txtHotkey != null) _txtHotkey.Text = "None";
+
                 // Reset checkbox controls to unchecked
                 _chkBoldTitleText.IsChecked = false;
                 _chkDisableTextShadow.IsChecked = false;
@@ -796,6 +1049,8 @@ namespace Desktop_Frames
         {
             ApplyRuntimeChanges(); // --- SPEED FIX: Update visuals instantly first ---
             SaveAllPropertiesToJson(); // Then save to JSON
+            // Refresh the frame title so its hotkey suffix reflects any change (after save).
+            try { Framemanager.RefreshFrameTitle(_frame.Id?.ToString()); } catch { }
             _result = true; // Mark as successful so if they close later, it counts as saved
         }
 
@@ -813,6 +1068,7 @@ namespace Desktop_Frames
                 string customLaunchEffect = GetDropdownValue(_cmbCustomLaunchEffect);
                 string frameBorderColor = GetDropdownValue(_cmbframeBorderColor);
                 string frameBorderThickness = _nudframeBorderThickness.Value.ToString();
+                string customTint = (_chkOverrideTint.IsChecked ?? false) ? ((int)_sldTransparency.Value).ToString() : "";
                 string titleTextColor = GetDropdownValue(_cmbTitleTextColor);
                 string titleTextSize = GetDropdownValue(_cmbTitleTextSize);
                 string boldTitleText = (_chkBoldTitleText.IsChecked ?? false).ToString().ToLower();
@@ -879,6 +1135,7 @@ namespace Desktop_Frames
                             Framemanager.UpdateFrameProperty(targetFrame, "CustomLaunchEffect", customLaunchEffect, "Global Apply: CustomLaunchEffect updated");
                             Framemanager.UpdateFrameProperty(targetFrame, "FrameBorderColor", frameBorderColor, "Global Apply: FrameBorderColor updated");
                             Framemanager.UpdateFrameProperty(targetFrame, "FrameBorderThickness", frameBorderThickness, "Global Apply: FrameBorderThickness updated");
+                            Framemanager.UpdateFrameProperty(targetFrame, "CustomTint", customTint, "Global Apply: CustomTint updated");
                             Framemanager.UpdateFrameProperty(targetFrame, "TitleTextColor", titleTextColor, "Global Apply: TitleTextColor updated");
                             Framemanager.UpdateFrameProperty(targetFrame, "TitleTextSize", titleTextSize, "Global Apply: TitleTextSize updated");
                             Framemanager.UpdateFrameProperty(targetFrame, "BoldTitleText", boldTitleText, "Global Apply: BoldTitleText updated");
@@ -922,6 +1179,49 @@ namespace Desktop_Frames
                 LoadDropdownValue(_cmbCustomLaunchEffect, _frame.CustomLaunchEffect?.ToString(), "CustomLaunchEffect");
                 LoadDropdownValue(_cmbframeBorderColor, _frame.FrameBorderColor?.ToString(), "FrameBorderColor");
                 LoadNumericValue(_nudframeBorderThickness, _frame.FrameBorderThickness?.ToString(), "FrameBorderThickness", 0);
+
+                // Load per-frame transparency override (CustomTint). Empty/absent => follow global default.
+                string customTintStr = null;
+                try { customTintStr = _frame.CustomTint?.ToString(); } catch { }
+                if (!string.IsNullOrWhiteSpace(customTintStr) && int.TryParse(customTintStr, out int customTintVal))
+                {
+                    _chkOverrideTint.IsChecked = true;
+                    _sldTransparency.IsEnabled = true;
+                    _sldTransparency.Value = Math.Max(0, Math.Min(100, customTintVal));
+                }
+                else
+                {
+                    _chkOverrideTint.IsChecked = false;
+                    _sldTransparency.IsEnabled = false;
+                    _sldTransparency.Value = SettingsManager.TintValue;
+                }
+
+                // Load per-frame striping override (DetailsStriped): "On"/"Off" => override; else follow global.
+                if (_chkOverrideStriped != null)
+                {
+                    string stripedStr = null;
+                    try { stripedStr = _frame.DetailsStriped?.ToString(); } catch { }
+                    if (stripedStr == "On" || stripedStr == "Off")
+                    {
+                        _chkOverrideStriped.IsChecked = true;
+                        _chkStriped.IsEnabled = true;
+                        _chkStriped.IsChecked = stripedStr == "On";
+                    }
+                    else
+                    {
+                        _chkOverrideStriped.IsChecked = false;
+                        _chkStriped.IsEnabled = false;
+                        _chkStriped.IsChecked = SettingsManager.PortalDetailsStriped;
+                    }
+                }
+
+                // Load focus hotkey
+                int loadVk = 0, loadMods = 0;
+                try { var v = _frame.HotkeyVk?.ToString(); if (!string.IsNullOrWhiteSpace(v)) int.TryParse(v, out loadVk); } catch { }
+                try { var v = _frame.HotkeyMods?.ToString(); if (!string.IsNullOrWhiteSpace(v)) int.TryParse(v, out loadMods); } catch { }
+                _hotkeyVk = loadVk; _hotkeyMods = loadMods; _capturingHotkey = false;
+                if (_btnSetHotkey != null) _btnSetHotkey.Content = "Set";
+                if (_txtHotkey != null) _txtHotkey.Text = HotkeyDisplay(loadMods, loadVk);
 
                 // Load Title Section properties
                 LoadDropdownValue(_cmbTitleTextColor, _frame.TitleTextColor?.ToString(), "TitleTextColor");
@@ -1149,6 +1449,16 @@ namespace Desktop_Frames
                 Framemanager.UpdateFrameProperty(_frame, "CustomLaunchEffect", customLaunchEffect, $"CustomLaunchEffect updated to '{customLaunchEffect}'");
                 Framemanager.UpdateFrameProperty(_frame, "FrameBorderColor", frameBorderColor, $"FrameBorderColor updated to '{frameBorderColor}'");
                 Framemanager.UpdateFrameProperty(_frame, "FrameBorderThickness", frameBorderThickness, $"FrameBorderThickness updated to '{frameBorderThickness}'");
+                string customTint = (_chkOverrideTint.IsChecked ?? false) ? ((int)_sldTransparency.Value).ToString() : "";
+                Framemanager.UpdateFrameProperty(_frame, "CustomTint", customTint, $"CustomTint updated to '{customTint}'");
+                if (_chkOverrideStriped != null)
+                {
+                    string detailsStriped = GetStripedValue();
+                    Framemanager.UpdateFrameProperty(_frame, "DetailsStriped", detailsStriped, $"DetailsStriped updated to '{detailsStriped}'");
+                }
+                // Per-frame focus hotkey (unique per frame — intentionally excluded from Global Apply)
+                Framemanager.UpdateFrameProperty(_frame, "HotkeyVk", _hotkeyVk.ToString(), $"HotkeyVk updated to '{_hotkeyVk}'");
+                Framemanager.UpdateFrameProperty(_frame, "HotkeyMods", _hotkeyMods.ToString(), $"HotkeyMods updated to '{_hotkeyMods}'");
                 Framemanager.UpdateFrameProperty(_frame, "TitleTextColor", titleTextColor, $"TitleTextColor updated to '{titleTextColor}'");
                 Framemanager.UpdateFrameProperty(_frame, "TitleTextSize", titleTextSize, $"TitleTextSize updated to '{titleTextSize}'");
                 Framemanager.UpdateFrameProperty(_frame, "BoldTitleText", boldTitleText, $"BoldTitleText updated to '{boldTitleText}'");
@@ -1197,6 +1507,9 @@ namespace Desktop_Frames
                     {
                         // Update Icon visuals
                         ApplyIconSettings(win);
+
+                        // Portal Details view shares text color + grayscale — refresh it too.
+                        if (itemsType == "Portal") Framemanager.RefreshPortalDetails(frameId);
                     }
                     // --- CHANGED LOGIC END ---
 
@@ -1383,14 +1696,15 @@ namespace Desktop_Frames
             {
                 string customColor = GetDropdownValue(_cmbCustomColor);
 
+                int? tintOverride = GetTintOverride();
                 if (!string.IsNullOrEmpty(customColor) && customColor != "Default")
                 {
-                    Utility.ApplyTintAndColorToFrame(win, customColor);
+                    Utility.ApplyTintAndColorToFrame(win, customColor, tintOverride);
                     LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Applied custom color '{customColor}' to frame");
                 }
                 else
                 {
-                    Utility.ApplyTintAndColorToFrame(win, SettingsManager.SelectedColor);
+                    Utility.ApplyTintAndColorToFrame(win, SettingsManager.SelectedColor, tintOverride);
                     LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI, $"Applied default color to frame");
                 }
             }

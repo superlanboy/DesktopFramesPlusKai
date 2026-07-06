@@ -160,6 +160,44 @@ public class NonActivatingWindow : Window
         System.Windows.Input.Keyboard.ClearFocus();
     }
 
+    /// <summary>
+    /// Temporarily makes the frame a real foreground window (bypassing its non-activating
+    /// behavior) so it comes to the front AND, crucially, drops behind whatever the user
+    /// clicks next — even a maximized, already-foreground window. The caller must re-enable
+    /// focus prevention (EnableFocusPrevention(true)) once the frame deactivates/hides.
+    /// </summary>
+    public void ForceForeground()
+    {
+        EnableFocusPrevention(false);
+
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        IntPtr foregroundHwnd = GetForegroundWindow();
+
+        try
+        {
+            if (foregroundHwnd != hwnd && foregroundHwnd != IntPtr.Zero)
+            {
+                uint foregroundThread = GetWindowThreadProcessId(foregroundHwnd, out _);
+                uint currentThread = GetCurrentThreadId();
+                if (foregroundThread != currentThread)
+                {
+                    AttachThreadInput(currentThread, foregroundThread, true);
+                    SetForegroundWindow(hwnd);
+                    AttachThreadInput(currentThread, foregroundThread, false);
+                }
+                else
+                {
+                    SetForegroundWindow(hwnd);
+                }
+            }
+            else
+            {
+                SetForegroundWindow(hwnd);
+            }
+        }
+        catch { }
+    }
+
     // =========================================================
     // IDLE FADE-OUT ENGINE
     // =========================================================

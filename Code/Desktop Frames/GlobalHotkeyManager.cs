@@ -34,6 +34,7 @@ namespace Desktop_Frames
         private const int VK_9 = 0x39; // 9 key
         private const int VK_OEM_COMMA = 0xBC; // , < key
         private const int VK_OEM_PERIOD = 0xBE; // . > key
+        private const int VK_ESCAPE = 0x1B;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct KBDLLHOOKSTRUCT
@@ -75,6 +76,17 @@ namespace Desktop_Frames
         private static bool _isDKeyPressed = false;
         private static bool _winDDetected = false;
         private static bool _searchHotkeyDetected = false;
+
+        // Hotkey capture (used by the Customize/Options "press to set" fields). While active, the hook
+        // grabs the next combo, swallows it, and reports it back — so it doesn't trigger normal hotkeys
+        // and the Windows key can be included without opening the Start menu.
+        private static bool _captureMode = false;
+        private static Action<int, int> _captureCallback; // (vk, modsBitmask); vk==0 means cancelled
+        // Modifier state tracked from the hook's own events during capture (reliable even though we
+        // swallow keys — GetAsyncKeyState is unreliable for swallowed keys).
+        private static bool _capCtrl, _capAlt, _capShift, _capWin;
+        // After a Win-modified hotkey fires we swallow the following Win key-up to stop the Start menu.
+        private static bool _swallowNextWinUp = false;
         #endregion
 
         #region Public Events
@@ -84,6 +96,25 @@ namespace Desktop_Frames
         #endregion
 
         #region Public Methods
+        /// <summary>
+        /// Enter hotkey-capture mode: the next key combo is intercepted (swallowed, so it neither
+        /// triggers existing hotkeys nor OS shortcuts like the Start menu) and reported via callback.
+        /// The callback receives (virtualKey, modifierBitmask) where Ctrl=1, Alt=2, Shift=4, Win=8;
+        /// virtualKey==0 signals the user cancelled (Escape).
+        /// </summary>
+        public static void BeginHotkeyCapture(Action<int, int> onCaptured)
+        {
+            _capCtrl = _capAlt = _capShift = _capWin = false;
+            _captureCallback = onCaptured;
+            _captureMode = true;
+        }
+
+        public static void CancelHotkeyCapture()
+        {
+            _captureMode = false;
+            _captureCallback = null;
+        }
+
         public static void StartMonitoring()
         {
             try
@@ -168,6 +199,60 @@ namespace Desktop_Frames
                     uint vkCode = hookStruct.vkCode;
                     bool isKeyDown = (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN);
                     bool isKeyUp = (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP);
+
+                    // ============================================================
+                    // 0a. Swallow the Win key-up that follows a Win-modified hotkey,
+                    //     so pressing e.g. Win+M for a frame doesn't also open the Start menu.
+                    // ============================================================
+                    if (_swallowNextWinUp && isKeyUp && (vkCode == VK_LWIN || vkCode == VK_RWIN))
+                    {
+                        _swallowNextWinUp = false;
+                        return (IntPtr)1;
+                    }
+
+                    // ============================================================
+                    // 0b. Hotkey CAPTURE mode (Customize/Options "press to set" fields).
+                    //     Grab the next combo, swallow it entirely, and report it back.
+                    // ============================================================
+                    if (_captureMode)
+                    {
+                        int vkc = (int)vkCode;
+
+                        // Track modifier state from the events themselves (works even though we swallow).
+                        bool isCtrlKey = vkc == VK_CONTROL || vkc == 0xA2 || vkc == 0xA3;
+                        bool isAltKey = vkc == VK_MENU || vkc == 0xA4 || vkc == 0xA5;
+                        bool isShiftKey = vkc == VK_SHIFT || vkc == 0xA0 || vkc == 0xA1;
+                        bool isWinKey = vkc == VK_LWIN || vkc == VK_RWIN;
+
+                        if (isCtrlKey) { _capCtrl = isKeyDown; }
+                        else if (isAltKey) { _capAlt = isKeyDown; }
+                        else if (isShiftKey) { _capShift = isKeyDown; }
+                        else if (isWinKey) { _capWin = isKeyDown; }
+                        else if (isKeyDown)
+                        {
+                            // Cancel on Escape.
+                            if (vkc == VK_ESCAPE)
+                            {
+                                _captureMode = false;
+                                var cbCancel = _captureCallback; _captureCallback = null;
+                                System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() => cbCancel?.Invoke(0, 0)));
+                                return (IntPtr)1;
+                            }
+
+                            int mask = (_capCtrl ? 1 : 0) | (_capAlt ? 2 : 0) | (_capShift ? 4 : 0) | (_capWin ? 8 : 0);
+
+                            // Require at least one modifier; otherwise keep waiting for a valid combo.
+                            if (mask != 0)
+                            {
+                                _captureMode = false;
+                                if (_capWin) _swallowNextWinUp = true; // avoid Start menu on the trailing Win-up
+                                var cbDone = _captureCallback; _captureCallback = null;
+                                System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() => cbDone?.Invoke(vkc, mask)));
+                            }
+                        }
+                        // Swallow everything while capturing so nothing leaks to apps/OS.
+                        return (IntPtr)1;
+                    }
 
                     // ============================================================
                     // ============================================================
@@ -288,6 +373,47 @@ namespace Desktop_Frames
                                 focusManager.ShowDialog();
                             }));
                             return (IntPtr)1; // Swallow the key so other apps don't process it
+                        }
+                    }
+
+                    // ============================================================
+                    // 4b. Toggle Show/Hide ALL Frames (default Ctrl+Alt+H)
+                    // ============================================================
+                    if (SettingsManager.EnableToggleFramesHotkey && vkCode == SettingsManager.ToggleFramesKey && isKeyDown)
+                    {
+                        if (CheckModifiersStrict(SettingsManager.ToggleFramesModifier))
+                        {
+                            System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                if (Framemanager._areFramesAutoHidden)
+                                    Framemanager.WakeUpFrames();
+                                else
+                                    Framemanager.ForceHideFrames();
+                            }));
+                            if ((SettingsManager.ToggleFramesModifier ?? "").ToLower().Contains("win")) _swallowNextWinUp = true;
+                            return (IntPtr)1; // Swallow so other apps don't process it
+                        }
+                    }
+
+                    // ============================================================
+                    // 4c. Per-frame focus hotkeys (assigned via Customize dialog)
+                    // ============================================================
+                    if (isKeyDown)
+                    {
+                        bool hCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+                        bool hAlt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+                        bool hShift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                        bool hWin = (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
+                        int mask = (hCtrl ? 1 : 0) | (hAlt ? 2 : 0) | (hShift ? 4 : 0) | (hWin ? 8 : 0);
+
+                        // Require at least one modifier, and check the fast cache before dispatching.
+                        if (mask != 0 && Framemanager.HasFrameHotkey((int)vkCode, mask))
+                        {
+                            int vkLocal = (int)vkCode;
+                            System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                                Framemanager.FocusFrameByHotkey(vkLocal, mask)));
+                            if ((mask & 8) != 0) _swallowNextWinUp = true;
+                            return (IntPtr)1; // Swallow so other apps don't process it
                         }
                     }
 

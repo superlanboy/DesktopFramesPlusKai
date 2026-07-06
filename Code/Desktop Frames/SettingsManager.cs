@@ -81,6 +81,10 @@ namespace Desktop_Frames
         public static bool HideDesktopElementsOnStart { get; set; } = false;
         public static bool HideDesktopElementsOnAllFramesHide { get; set; } = false;
         public static bool ShowDesktopDot { get; set; } = true;
+        // Fences-style: double-click empty desktop toggles the native desktop icons.
+        public static bool ToggleDesktopIconsOnDoubleClick { get; set; } = false;
+        // Global default for zebra striping in Portal Details view (per-frame override via DetailsStriped).
+        public static bool PortalDetailsStriped { get; set; } = true;
 
         // --- NEW: Idle Fade-Out Settings ---
         public static bool FramesFadeOutFx { get; set; } = false;
@@ -97,6 +101,10 @@ namespace Desktop_Frames
         public static bool EnableProfileHotkeys { get; set; } = false;
         public static bool AltGrWarningShown { get; set; } = false;
         public static bool EnableFocusFrameHotkey { get; set; } = true;
+        // Show/Hide all frames hotkey (default Ctrl+Alt+H)
+        public static bool EnableToggleFramesHotkey { get; set; } = true;
+        public static int ToggleFramesKey { get; set; } = 0x48; // H
+        public static string ToggleFramesModifier { get; set; } = "ctrl+alt";
         public static int SpotSearchKey { get; set; } = 192;
 
         public static string SpotSearchModifier { get; set; } = "Control";
@@ -247,6 +255,8 @@ namespace Desktop_Frames
                 HideDesktopElementsOnStart,
                 HideDesktopElementsOnAllFramesHide,
                 ShowDesktopDot,
+                ToggleDesktopIconsOnDoubleClick,
+                PortalDetailsStriped,
                 // Idle Fade-Out
                 FramesFadeOutFx,
                 FadeOutFxTargetAlpha,
@@ -256,6 +266,9 @@ namespace Desktop_Frames
                 EnableProfileHotkeys,
                 AltGrWarningShown, // --- NEW ---
                 EnableFocusFrameHotkey,
+                EnableToggleFramesHotkey,
+                ToggleFramesKey,
+                ToggleFramesModifier,
                 ProfileSwitchModifier,
                 ProfileSwitchKeys,
                 ProfilePrevModifier,
@@ -339,6 +352,8 @@ namespace Desktop_Frames
             try { HideDesktopElementsOnStart = data.HideDesktopElementsOnStart ?? false; } catch { HideDesktopElementsOnStart = false; }
             try { HideDesktopElementsOnAllFramesHide = data.HideDesktopElementsOnAllFramesHide ?? false; } catch { HideDesktopElementsOnAllFramesHide = false; }
             try { ShowDesktopDot = data.ShowDesktopDot ?? true; } catch { ShowDesktopDot = true; }
+            try { ToggleDesktopIconsOnDoubleClick = data.ToggleDesktopIconsOnDoubleClick ?? false; } catch { ToggleDesktopIconsOnDoubleClick = false; }
+            try { PortalDetailsStriped = data.PortalDetailsStriped ?? true; } catch { PortalDetailsStriped = true; }
 
             // Idle Fade-Out
             try { FramesFadeOutFx = data.FramesFadeOutFx ?? false; } catch { FramesFadeOutFx = false; }
@@ -408,6 +423,9 @@ namespace Desktop_Frames
             try { EnableProfileHotkeys = data.EnableProfileHotkeys ?? false; } catch { EnableProfileHotkeys = false; }
             try { AltGrWarningShown = data.AltGrWarningShown ?? false; } catch { AltGrWarningShown = false; }
             try { EnableFocusFrameHotkey = data.EnableFocusFrameHotkey ?? true; } catch { EnableFocusFrameHotkey = true; }
+            try { EnableToggleFramesHotkey = data.EnableToggleFramesHotkey ?? true; } catch { EnableToggleFramesHotkey = true; }
+            try { ToggleFramesKey = data.ToggleFramesKey ?? 0x48; } catch { ToggleFramesKey = 0x48; }
+            try { if (data.ToggleFramesModifier != null) ToggleFramesModifier = data.ToggleFramesModifier.ToString(); } catch { }
             try { if (data.ProfileSwitchModifier != null) ProfileSwitchModifier = data.ProfileSwitchModifier.ToString(); } catch { }
             try { if (data.ProfileSwitchKeys != null) ProfileSwitchKeys = ((JArray)data.ProfileSwitchKeys).Select(x => (int)x).ToArray(); } catch { }
             try { if (data.ProfilePrevModifier != null) ProfilePrevModifier = data.ProfilePrevModifier.ToString(); } catch { }

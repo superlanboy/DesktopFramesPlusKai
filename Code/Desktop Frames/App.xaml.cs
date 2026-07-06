@@ -12,7 +12,6 @@ namespace Desktop_Frames
     {
         private TrayManager _trayManager;
         private TargetChecker _targetChecker;
-        private static bool _desktopIsShown = false;
         private static Mutex _mutex;
         private const string UNIQUE_APP_NAME = "Global\\DesktopFramesPlus_Mutex_UniqueId_v2";
 
@@ -20,6 +19,15 @@ namespace Desktop_Frames
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            // Crash logging: record any unhandled exception (with stack) so crashes aren't silent.
+            this.DispatcherUnhandledException += (s2, ex2) =>
+                LogManager.Diag($"DISPATCHER UNHANDLED: {ex2.Exception.GetType().Name}: {ex2.Exception.Message}\n{ex2.Exception.StackTrace}");
+            AppDomain.CurrentDomain.UnhandledException += (s2, ex2) =>
+            {
+                var e3 = ex2.ExceptionObject as Exception;
+                LogManager.Diag($"DOMAIN UNHANDLED: {e3?.GetType().Name}: {e3?.Message}\n{e3?.StackTrace}");
+            };
+
             // --- 1. INITIALIZE PROFILES & SETTINGS FIRST ---
             // This ensures we know the user's true DisableSingleInstance preference immediately
             try
@@ -87,7 +95,10 @@ namespace Desktop_Frames
                     RegistryHelper.RefreshContextMenuPath();
 
                     // Initialize InterCore system
-                    InterCore.Initialize();
+                    // DISABLED (perf): InterCore ran a 1-second registry poll + easter eggs (Dance
+                    // Party / Gravity Drop). Not needed. InterCore.ProcessTitleChange still works
+                    // without Initialize(), so title-based effects are unaffected.
+                    // InterCore.Initialize();
 
                     // --- CHAMELEON ENGINE ---
                     WallpaperColorManager.Initialize();
@@ -133,7 +144,6 @@ namespace Desktop_Frames
                     // Initialize global hotkey monitoring
                     try
                     {
-                        GlobalHotkeyManager.WindowsPlusDDetected += OnWindowsPlusDDetected;
                         GlobalHotkeyManager.StartMonitoring();
                         LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.General,
                             "GlobalHotkeyManager: Successfully initialized hotkey monitoring");
@@ -171,6 +181,17 @@ namespace Desktop_Frames
                         // Wait 500ms for UI to settle, then draw
                         Task.Delay(500).ContinueWith(t => Dispatcher.Invoke(() => Framemanager.StartDrawMode()));
                     }
+
+                    // Keep the idle memory footprint low: trim the working set after startup
+                    // and periodically thereafter.
+                    MemoryOptimizer.Start();
+
+                    // Warm the context-menu subsystems (WPF popup + native shell handlers) once the
+                    // UI is idle, so the FIRST right-click of the session isn't jittery.
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try { PreWarmManager.Run(); } catch { }
+                    }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 }
             }
             catch (Exception ex)
@@ -198,66 +219,6 @@ namespace Desktop_Frames
 
             _trayManager?.Dispose();
             base.OnExit(e);
-        }
-
-        private static void OnWindowsPlusDDetected(object sender, System.EventArgs e)
-        {
-            try
-            {
-                _desktopIsShown = !_desktopIsShown;
-                if (_desktopIsShown)
-                {
-                    var restoreTimer = new System.Windows.Threading.DispatcherTimer
-                    {
-                        Interval = TimeSpan.FromMilliseconds(800)
-                    };
-                    restoreTimer.Tick += (timerSender, timerArgs) =>
-                    {
-                        restoreTimer.Stop();
-                        RestoreAllframeWindows();
-                    };
-                    restoreTimer.Start();
-                }
-
-                var resetTimer = new System.Windows.Threading.DispatcherTimer
-                {
-                    Interval = TimeSpan.FromSeconds(10)
-                };
-                resetTimer.Tick += (timerSender, timerArgs) =>
-                {
-                    resetTimer.Stop();
-                    _desktopIsShown = false;
-                };
-                resetTimer.Start();
-            }
-            catch { }
-        }
-
-        private static void RestoreAllframeWindows()
-        {
-            try
-            {
-                var frameWindows = System.Windows.Application.Current.Windows
-                    .OfType<NonActivatingWindow>()
-                    .ToList();
-
-                foreach (var frameWindow in frameWindows)
-                {
-                    try
-                    {
-                        if (frameWindow.WindowState == WindowState.Minimized)
-                            frameWindow.WindowState = WindowState.Normal;
-
-                        if (!frameWindow.IsVisible)
-                            frameWindow.Show();
-
-                        frameWindow.Topmost = true;
-                        frameWindow.Topmost = false;
-                    }
-                    catch { }
-                }
-            }
-            catch { }
         }
     }
 }

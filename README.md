@@ -1,148 +1,103 @@
-<h1 align="center">Desktop Frames +</h1>
+<h1 align="center">Desktop Frames + Kai</h1>
 <p align="center"><i>Organize your desktop like magic!</i></p>
-<p align="center">
-<img src="https://img.shields.io/github/downloads/limbo666/DesktopFramesPlus/total?style=flat-square" alt="Total Downloads"/>
-<img src="https://img.shields.io/github/stars/limbo666/DesktopFramesPlus?style=flat-square" alt="Stars"/>
-  <img src="https://img.shields.io/github/forks/limbo666/DesktopFramesPlus?style=flat-square" alt="Forks"/>
-  <img src="https://img.shields.io/github/issues/limbo666/DesktopFramesPlus?style=flat-square" alt="Issues"/>
-   <img src="https://img.shields.io/github/last-commit/limbo666/DesktopFramesPlus?style=flat-square" alt="Last Commit"/>
-</p>
+<p align="center"><b>A free, open-source Stardock Fences alternative for Windows 10/11</b> — group desktop icons into frames, mirror folders, and tidy your desktop.</p>
 
 <p align="center">
-
-  <img width="150" height="150" alt="Desktop Frames150" src="https://github.com/user-attachments/assets/a88f7771-8ae8-4be8-86dc-4e8aabfa5a77" />
-
+  <img width="150" height="150" alt="Desktop Frames" src="https://github.com/user-attachments/assets/a88f7771-8ae8-4be8-86dc-4e8aabfa5a77" />
 </p>
 
+---
 
-##  ⚠️ Important Notice: Welcome to Desktop Frames + 
-
-You may have noticed a **new name** and a **new logo**. Recently, this repository was targeted by a trademark complaint from a large commercial software company regarding our name (and icon).
-
-To protect this repository from being suspended and to ensure this tool remains completely free and open-source for the community, I was forced to rebrand. We are now officially **Desktop Frames +**.
-
-Thank you to everyone who helped this project reach 500+ stars.  
-Your support is the reason this tool exists, and corporate pressure won't stop me from improving it.
-
-A short **how to upgrade guide** can be found on the following link:
-  https://github.com/limbo666/DesktopFramesPlus/blob/main/HowToUpgradeToDesktopFramesPlus.md
-
-##  Support Me
-
-If this project has helped you, please consider supporting its development! Your contribution directly impacts how fast and far this project grows.
-
-Maintaining and improving this tool takes time, effort, and resources. Donations help me:
- - Dedicate more time to fixing bugs and adding features
- - Cover the cost of tools (like AI assistance that speeds up development)
- - Stay motivated and keep pushing the project forward
-
-Your support literally drives the pace of development!  
-Even small contributions mean a lot. Thank you for keeping this project alive and evolving! 
-
-[![Donate](https://raw.githubusercontent.com/limbo666/DesktopFramesPlus/refs/heads/main/Images/paypal.png)](https://www.paypal.com/donate/?hosted_button_id=PPLWC66UC8Q42)
-
-
-##  About Desktop Frames +
-
-
-Desktop Frames + creates **virtual Frames** on your desktop, allowing you to group and organize icons in a clean and convenient way. With enhanced visual effects and right-click options, it aims to provide a more polished and customizable user interface.
-
-**Desktop Frames+** is an open-source desktop icon management software, originally created by HakanKokcu under the name BirdyFences.
-
-This project is a continuation and substantial modification of the original BirdyFences codebase, which was licensed under the MIT License at the time of forking. 
-
-Desktop Frames+ has been significantly enhanced and optimized for improved performance, stability, and user experience, while respecting the terms of the original license and acknowledging the original author.
-
-
-##  Version History  
-**$\color{green}{\text{The list of changes is moved here:}}$**    
-https://github.com/limbo666/DesktopFramesPlus/blob/main/VersionHistory.md
-
-##  Manual  
-**$\color{blue}{\text{A simple how to use guide is located here:}}$**   
-[https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_Frames_simple_manual.md](https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_frames_simple_manual.md)
-
-
-##  Tips 
-**$\color{red}{\text{Also some advanced usage tips:}}$**  
-https://github.com/limbo666/DesktopFramesPlus/blob/main/TIPS.md
-<br> Read them before starting an issue. 
-
-
-
-
-## Features
-
--   **Multiple Frame Types:** Create Data Frames for custom shortcuts, Portal Frames that actively mirror folder contents (with internal navigation and filters), and Note Frames for quick text.  
--   **Tabs Engine:** Keep your desktop clean by organizing shortcuts into multiple tabs within a single frame, complete with tab overflow management.
--   **Workspace Profiles:** Create independent layouts for different workflows (e.g., Work, Gaming). Switch profiles manually via hotkeys, or use Profile Automation to switch automatically when specific programs are launched.
--   **Smart Desktop Engine:** Automatically sort and move incoming files into specific Portal Frames or folders based on custom user rules.
--   **SpotSearch:** A built-in quick-search pane invoked by a hotkey to instantly find and launch shortcuts across all your frames.  
--   **Dynamic Visibility:** Temporarily "Peek Behind" frames to see the desktop, "Rollup" frames to hide their contents, or enable Auto-hide to conceal frames after a period of inactivity.    
--   **Focus Mode:** Highlight a specific frame using the tray menu or a hotkey combination. 
--   **Universal Support:** Fully supports standard files, folders, web links, MS Store apps, Steam games, and Spotify URIs. Includes advanced execution options like "Run as Administrator" and "Run as different user".
--   **Theming:** Customize individual frame background colors, set global tint levels, or use **Chameleon Mode** to automatically match your frames to your wallpaper's dominant color.   
--   **Launch Animations:** Select from multiple visual effects (Zoom, Bounce, Fadeout, SlideUp, Rotate, Elastic) when launching applications.
--   **Precision Layouts:** Utilize "Snap to Dimension" for perfect alignment, easily reorder icons with `CTRL + Drag`, and insert blank spacers to position your icons exactly where you want them.
--   **Icon Customization:** Extract and assign custom icons from executables, DLLs, or image files for any shortcut, folder, or web link.
--   **Automated Backups:** Features a daily automatic backup mechanism that saves your layouts, configurations, and shortcuts.   
--   **Export & Import:** Easily move your setup across different computers by exporting individual frames or entire tabs.
--   **Fully Portable:** Utilizes relative paths for files and folders to ensure seamless operation across different environments.
-
+> ### 🔱 This is a personal fork
+> A personal fork of [**limbo666/DesktopFramesPlus**](https://github.com/limbo666/DesktopFramesPlus) (MIT), which is itself a continuation of the original **BirdyFences** by HakanKokcu. All upstream work belongs to those authors — see [Credits](#-credits).
+>
+> **About the name:** *Kai* (改) is Japanese for a *revised / modified version* — fitting for a fork — and a nod to the fact that its enhancements were built with **AI** assistance.
+>
+> This fork adds a Windows Explorer–style **Details view**, **per-frame transparency**, global + per-frame **hotkeys**, **dark-mode menus**, themed chrome, and various **performance** fixes. See [**Fork Enhancements**](#-fork-enhancements).
 
 ---
 
-##  Download
-Get the latest release from releases section:
-https://github.com/limbo666/DesktopFramesPlus/releases
-**UPDATE: Release 2.7.7.294 is out**
+## Why this fork exists
+
+I put this together for my own use after **Fences 3 stopped being supported** on my setup, and because I wasn't a fan of the **current publisher's monetization model**. I wanted a free, open-source desktop-organizer that does what I need without the subscription/upsell direction, so I forked an existing MIT-licensed project and extended it to fill the gaps.
+
+It's shared publicly in case it's useful to anyone in the same boat. It's a hobby project, provided as-is, with no warranty or support commitment.
+
+## 🤖 A note on AI assistance
+
+In the interest of transparency: the **fork-specific features in this repo were built with substantial help from [Claude](https://www.anthropic.com/claude) (Anthropic's AI assistant)** — used for writing, refactoring, and debugging the added code. I'm flagging this openly rather than hiding it. The upstream project is the work of its original human authors; the AI assistance applies to the changes made in *this* fork.
 
 ---
 
-##  Installation
->  Compatible with Windows 10/11  
->  Fully portable
+## About Desktop Frames +
 
- - Download the release package
- - Extract the all files contained in zip package into a folder 
- - Run `Desktop Frames.exe` .  
-   _All necessary configuration files and folders will be created on first run._
-   
-**Attention:** Only user-writable locations are compatible.  
-_See (https://github.com/limbo666/DesktopFramesPlus/issues/51)_
+Desktop Frames + creates **virtual frames** on your desktop, letting you group and organize icons cleanly. It supports:
 
+- **Multiple frame types:** Data frames (custom shortcuts), Portal frames (live mirror of a folder, with navigation and filters), and Note frames (quick text).
+- **Tabs, workspace profiles, and a smart-desktop auto-sort engine.**
+- **Dynamic visibility:** peek-behind, roll-up, auto-hide, and focus mode.
+- **Broad launch support:** files, folders, web links, Store apps, Steam games, Spotify URIs, run-as-admin / run-as-different-user.
+- **Theming:** per-frame colours, global tint, and a wallpaper-matching "Chameleon" mode.
 
-##  Update existing installation
-
- - Download the release package
- - Extract the all files contained in zip package and overwrite existing int your Desktop Frames + folder 
- - Run `Desktop Frames.exe` .  
-   _Some releases may convert your configuration files and/or folders to be compatible with new functions_  
-   _As a safety measure it is suggested to backup your Desktop Frames + folder before updating_
-
-
----
-## Stargazers over time
-[![Stargazers over time](https://starchart.cc/limbo666/DesktopFramesPlus.svg?background=%23535050&axis=%23f172cb&line=%239c34f7)](https://starchart.cc/limbo666/DesktopFramesPlus)
----
-
-##  License
-
-This project is licensed under the [MIT License](License.md).
+The original project is well documented upstream — see the [upstream manual](https://github.com/limbo666/DesktopFramesPlus/blob/main/desktop_frames_simple_manual.md) and [tips](https://github.com/limbo666/DesktopFramesPlus/blob/main/TIPS.md).
 
 ---
 
-##  Credits
+## 🔧 Fork Enhancements
 
-Based on the original **BirdyFences** by HakanKokcu  
-Desktop Frames + is Enhanced and maintained by Nikos Georgousis.  
-Hand Water Pump 2025-2026
+Everything in this section is what this fork adds on top of the upstream project.
 
+### Portal Details view
+A Windows Explorer–style list view for Portal frames, as an alternative to the icon grid.
+- **Toggle per frame:** right-click a Portal frame → **View → Icons / Details** (remembered per frame).
+- **Columns:** Name, Date modified, Type, Size — resizable, with widths saved per frame.
+- **Click-to-sort** with a **▲ / ▼** indicator; right-click **Sort by / Group by** with Explorer-style buckets (Today / Yesterday / Earlier this week, size ranges, …).
+- **Native shell context menu** on right-click (Open with, Send to, cut/copy/paste, Properties, shell extensions), lazily loaded so the first right-click stays fast.
+- **Zebra striping** (global default + per-frame override), and chrome (headers, scrollbars, selection) themed to the frame's colour.
 
+### Icon (normal) view
+- **Sort by** menu (Name / Date / Type / Size) with **ascending / descending**, plus a "Sorted by …" heading.
+- Themed scrollbar to match the frame.
 
+### Frames & title bar
+- **Per-type title glyph** (folder / note / shortcut), tinted to match the other title-bar icons; Portal frames show their folder path on hover.
+- **Rename Frame** from the context menu; hotkey shown in the title.
+- **Per-frame transparency** override (Customize dialog) on top of the global Frame Tint.
 
+### Hotkeys
+- **Show / Hide all frames** (default `Ctrl + Alt + H`, customizable).
+- **Per-frame focus** hotkey (press-to-capture; supports groups and the Windows key).
+- Optional **double-click empty desktop** to toggle native desktop icons.
 
+### Dark mode & theming
+- **Dark-mode context menus** throughout (frame, icon, Notes editor, and the native shell menu) that follow the OS light/dark setting.
 
+### Performance & footprint
+- **Extension-based caching** of shell icons and type names for fast Portal loads.
+- **Lazy context menus**, batched Portal reconciler, working-set trimming, and removal of unused startup work.
 
+---
 
+## Building from source
 
+> Compatible with Windows 10/11 · fully portable
+
+This fork is source-first (no prebuilt releases). It targets **.NET 8 (`net8.0-windows7.0`)** and, because of COM references, must be built with the **full MSBuild** from Visual Studio / Build Tools (not `dotnet build`):
+
+1. Install **Visual Studio 2022** (or Build Tools) with the **.NET desktop** workload.
+2. Build `Code/Desktop Frames/Desktop Frames.csproj` in `Release`.
+3. Run `Desktop Frames.exe` from the output folder. Config files are created on first run in a user-writable location.
+
+For the original, prebuilt tool, use the [upstream releases](https://github.com/limbo666/DesktopFramesPlus/releases).
+
+---
+
+## 📜 License
+
+MIT — see [License.md](License.md). The MIT terms of the upstream project are retained.
+
+## 🙏 Credits
+
+- Original **BirdyFences** by **HakanKokcu**.
+- **Desktop Frames +** upstream by **limbo666 / Nikos Georgousis** — please star and support the [upstream project](https://github.com/limbo666/DesktopFramesPlus).
+- This personal fork is maintained by **superlanboy**, building on the above under the MIT License, with development help from Claude (see the AI note above).

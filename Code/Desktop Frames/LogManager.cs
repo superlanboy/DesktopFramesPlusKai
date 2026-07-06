@@ -24,13 +24,30 @@ namespace Desktop_Frames
 
         private static readonly object _logLock = new object();
         private static string _logFilePath;
+        private static string _diagFilePath;
         private static int _rotationCheckCounter = 0; // Optimization counter
 
         static LogManager()
         {
-            _logFilePath = System.IO.Path.Combine(
-                System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
-                "Desktop_Frames.log");
+            string dir = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+            _logFilePath = System.IO.Path.Combine(dir, "Desktop_Frames.log");
+            _diagFilePath = System.IO.Path.Combine(dir, "portal_diag.log");
+        }
+
+        /// <summary>
+        /// Crash log: unconditional, immediately-flushed write to portal_diag.log (ignores
+        /// IsLogEnabled/level filters) so an unhandled exception leaves a trace even on a hard crash.
+        /// </summary>
+        public static void Diag(string message)
+        {
+            try
+            {
+                lock (_logLock)
+                {
+                    System.IO.File.AppendAllText(_diagFilePath, $"{DateTime.Now:HH:mm:ss.fff} {message}\n");
+                }
+            }
+            catch { }
         }
 
         public static void Log(LogLevel level, LogCategory category, string message)

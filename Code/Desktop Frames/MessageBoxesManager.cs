@@ -594,10 +594,7 @@ namespace Desktop_Frames
             {
                 try
                 {
-                    if (SettingsManager.IsLogEnabled)
-                    {
-                        System.Media.SystemSounds.Asterisk.Play();
-                    }
+                    // Sound notifications removed (not required).
                 }
                 catch (Exception ex)
                 {
@@ -1348,10 +1345,13 @@ namespace Desktop_Frames
         /// </summary>
         private static void PlayDingSound(NotificationSound? overrideSound = null)
         {
-            if (SettingsManager.EnableSounds == false)
+            // Sound notifications removed (not required). Kept as a runtime flag so the rest of the
+            // method stays reachable (no unreachable-code warning) and it's easy to re-enable.
+            bool soundsRemoved = true;
+            if (soundsRemoved || SettingsManager.EnableSounds == false)
             {
                 LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.UI,
-                    "MessageBoxes: Sound is muted, skipping ding sound playback");
+                    "MessageBoxes: Sound disabled, skipping ding sound playback");
                 return;
             }
 

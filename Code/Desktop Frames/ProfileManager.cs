@@ -272,6 +272,43 @@ namespace Desktop_Frames
         }
 
 
+        /// <summary>Creates a new profile that is a full copy of an existing one (layout, options,
+        /// and any Data-frame shortcuts), so similar setups (e.g. Work / Work-from-home) are easy.</summary>
+        public static bool DuplicateProfile(string sourceName, string newName)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(newName)) return false;
+                var invalid = Path.GetInvalidFileNameChars();
+                if (newName.Any(c => invalid.Contains(c))) return false;
+
+                string sourceDir = Path.Combine(_profilesRootDir, sourceName);
+                string newDir = Path.Combine(_profilesRootDir, newName);
+                if (!Directory.Exists(sourceDir)) return false;
+                if (Directory.Exists(newDir)) return false;
+
+                CopyDirectoryRecursive(sourceDir, newDir);
+
+                LoadAndSanitizeConfig(); // register the new profile folder
+                LogManager.Log(LogManager.LogLevel.Info, LogManager.LogCategory.General, $"Duplicated profile '{sourceName}' -> '{newName}'");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"Error duplicating profile: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void CopyDirectoryRecursive(string source, string dest)
+        {
+            Directory.CreateDirectory(dest);
+            foreach (var file in Directory.GetFiles(source))
+                File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), true);
+            foreach (var dir in Directory.GetDirectories(source))
+                CopyDirectoryRecursive(dir, Path.Combine(dest, Path.GetFileName(dir)));
+        }
+
         // --- PHASE 4: PROFILE OPERATIONS (Rename, Delete, Reorder) ---
         public static bool RenameProfile(string oldName, string newName)
         {

@@ -122,7 +122,14 @@ namespace DesktopFrames
                 {
                     // FIX: Use BeginInvoke so the mouse hook returns instantly.
                     // This stops the UI from feeling like it is "following/lagging" your click.
-                    Application.Current?.Dispatcher.BeginInvoke(new Action(() => Framemanager.WakeUpFrames()));
+                    Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        // Fences-style: double-clicking the bare desktop toggles the native icons.
+                        if (SettingsManager.ToggleDesktopIconsOnDoubleClick)
+                            Desktop_Frames.DesktopIconManager.ToggleDesktopIcons();
+
+                        Framemanager.WakeUpFrames();
+                    }));
                 }
             }
             else

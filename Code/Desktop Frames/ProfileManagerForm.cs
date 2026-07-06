@@ -253,6 +253,25 @@ namespace Desktop_Frames
                     controls.Children.Add(btnDown);
                 }
 
+                // Duplicate (allowed for any profile, including the active one)
+                Button btnDuplicate = CreateIconButton("⧉", "Duplicate");
+                btnDuplicate.Click += (s, e) =>
+                {
+                    e.Handled = true; // Prevent card click
+                    string suggested = p.Name + " Copy";
+                    string newName = Microsoft.VisualBasic.Interaction.InputBox("Duplicate profile as:", "Duplicate Profile", suggested);
+                    if (!string.IsNullOrWhiteSpace(newName) && newName != p.Name)
+                    {
+                        if (ProfileManager.DuplicateProfile(p.Name, newName))
+                        {
+                            RefreshList();
+                            TrayManager.Instance?.UpdateProfilesMenu();
+                        }
+                        else MessageBoxesManager.ShowOKOnlyMessageBoxForm("Duplicate failed. Name may be in use or invalid.", "Error");
+                    }
+                };
+                controls.Children.Add(btnDuplicate);
+
                 // Rename
                 Button btnRename = CreateIconButton("✎", "Rename");
                 btnRename.IsEnabled = !isActive;

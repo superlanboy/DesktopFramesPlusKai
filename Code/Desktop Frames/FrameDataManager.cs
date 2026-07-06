@@ -178,6 +178,7 @@ namespace Desktop_Frames
                     _frameData = JsonConvert.DeserializeObject<List<dynamic>>(jsonContent);
                     LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation,
                         $"Successfully loaded {_frameData?.Count ?? 0} frames from JSON array.");
+                    Framemanager.RefreshFrameHotkeys();
                     return _frameData != null;
                 }
                 catch (JsonException)
@@ -262,6 +263,9 @@ namespace Desktop_Frames
 
                 LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.Settings,
                     $"Saved frames.json with consistent formatting for {serializedData.Count} frames");
+
+                // Keep the per-frame focus-hotkey lookup in sync with the latest data.
+                Framemanager.RefreshFrameHotkeys();
             }
             catch (Exception ex)
             {
