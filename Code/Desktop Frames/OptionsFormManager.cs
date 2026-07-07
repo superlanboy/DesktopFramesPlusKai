@@ -389,21 +389,23 @@ namespace Desktop_Frames
             iconGrid.Children.Add(lockIconPanel);
             c.Children.Add(iconGrid);
 
-            // System tray icon style (theme-aware minimalist glyph, drawn in GDI+).
+            // System tray icon style — visual radio group with a preview of each style (theme-aware
+            // minimalist glyph, drawn in GDI+ at runtime). Parsed in the save handler via "TrayIconGroup".
             Grid trayGrid = new Grid { Margin = new Thickness(15, 0, 0, 12) };
-            trayGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            trayGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            var trayLbl = new TextBlock { Text = "System Tray Icon", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
-            Grid.SetColumn(trayLbl, 0);
-            var trayCmb = new ComboBox { Name = "TrayIconStyleComboBox", Width = 160, HorizontalAlignment = HorizontalAlignment.Left, Height = 25, FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
-            trayCmb.Items.Add(new ComboBoxItem { Content = "Nested frame", Tag = "Nested" });
-            trayCmb.Items.Add(new ComboBoxItem { Content = "Stacked frames", Tag = "Stacked" });
-            trayCmb.Items.Add(new ComboBoxItem { Content = "Icon grid", Tag = "Grid" });
+            StackPanel trayContainer = new StackPanel();
+            trayContainer.Children.Add(new TextBlock { Text = "System Tray Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 5) });
+            StackPanel trayGroup = new StackPanel { Orientation = Orientation.Horizontal, Tag = "TrayIconGroup" };
             string curTray = SettingsManager.TrayIconStyle ?? "Nested";
-            trayCmb.SelectedIndex = curTray == "Stacked" ? 1 : curTray == "Grid" ? 2 : 0;
-            Grid.SetColumn(trayCmb, 1);
-            trayGrid.Children.Add(trayLbl);
-            trayGrid.Children.Add(trayCmb);
+            foreach (var (style, caption) in new[] { ("Nested", "Nested"), ("Stacked", "Stacked"), ("Grid", "Grid") })
+            {
+                var preview = new StackPanel { Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center };
+                preview.Children.Add(BuildTrayPreview(style));
+                preview.Children.Add(new TextBlock { Text = caption, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 3, 0, 0) });
+                var rb = new RadioButton { GroupName = "TrayIconStyle", Tag = style, Content = preview, IsChecked = curTray == style, Margin = new Thickness(0, 0, 16, 0), VerticalContentAlignment = VerticalAlignment.Center };
+                trayGroup.Children.Add(rb);
+            }
+            trayContainer.Children.Add(trayGroup);
+            trayGrid.Children.Add(trayContainer);
             c.Children.Add(trayGrid);
 
             t.Content = new ScrollViewer { Content = c, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
@@ -765,6 +767,37 @@ namespace Desktop_Frames
             p.Children.Add(sp);
         }
 
+        /// <summary>A small WPF preview of a tray-icon style (light glyph on a dark taskbar swatch).</summary>
+        private static FrameworkElement BuildTrayPreview(string style)
+        {
+            var light = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE8, 0xEA, 0xED));
+            var dim = new SolidColorBrush(System.Windows.Media.Color.FromArgb(120, 0xE8, 0xEA, 0xED));
+            var swatch = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(6), Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x20, 0x21, 0x24)) };
+            var host = new Grid();
+
+            if (style == "Stacked")
+            {
+                host.Children.Add(new Border { Width = 14, Height = 14, CornerRadius = new CornerRadius(3), Background = dim, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(5, 5, 0, 0) });
+                host.Children.Add(new Border { Width = 14, Height = 14, CornerRadius = new CornerRadius(3), Background = light, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 5, 5) });
+            }
+            else if (style == "Grid")
+            {
+                host.Children.Add(new Border { Width = 20, Height = 20, CornerRadius = new CornerRadius(4), BorderBrush = light, BorderThickness = new Thickness(2), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+                var dots = new System.Windows.Controls.Primitives.UniformGrid { Rows = 2, Columns = 2, Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                for (int i = 0; i < 4; i++) dots.Children.Add(new System.Windows.Shapes.Rectangle { Width = 3.5, Height = 3.5, RadiusX = 1, RadiusY = 1, Fill = light, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0.5) });
+                host.Children.Add(dots);
+            }
+            else // Nested
+            {
+                var outer = new Border { Width = 20, Height = 20, CornerRadius = new CornerRadius(5), BorderBrush = light, BorderThickness = new Thickness(2), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                outer.Child = new Border { Width = 7, Height = 7, CornerRadius = new CornerRadius(2), Background = light, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                host.Children.Add(outer);
+            }
+
+            swatch.Child = host;
+            return swatch;
+        }
+
         //New Arrangement
 
         private static void CreateColorAndEffectComboBoxes(StackPanel p, CheckBox chamCb)
@@ -961,13 +994,9 @@ namespace Desktop_Frames
                             {
                                 if (rbSp.Tag?.ToString() == "MenuIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.MenuIcon = (int)rb.Tag;
                                 if (rbSp.Tag?.ToString() == "LockIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.LockIcon = (int)rb.Tag;
+                                if (rbSp.Tag?.ToString() == "TrayIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.TrayIconStyle = (string)rb.Tag;
                             }
                         }
-
-                        // Tray icon style
-                        var trayCmb = g.Children.OfType<ComboBox>().FirstOrDefault(cb => cb.Name == "TrayIconStyleComboBox");
-                        if (trayCmb?.SelectedItem is ComboBoxItem trayItem && trayItem.Tag != null)
-                            SettingsManager.TrayIconStyle = trayItem.Tag.ToString();
                     }
                 }
 

@@ -296,8 +296,7 @@ namespace Desktop_Frames
             _showHiddenFramesItem = new ToolStripMenuItem("Show Hidden Frames") { Enabled = false };
             trayMenu.Items.Add(_showHiddenFramesItem);
 
-            string focusHotkeyStr = GetFocusFrameHotkeyString();
-            trayMenu.Items.Add($"Focus Frame... ({focusHotkeyStr})", null, (s, e) =>
+            var focusFrameItem = (ToolStripMenuItem)trayMenu.Items.Add($"Focus Frame... ({GetFocusFrameHotkeyString()})", null, (s, e) =>
             {
                 System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -308,6 +307,14 @@ namespace Desktop_Frames
 
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add("Exit", null, (s, e) => System.Windows.Application.Current.Shutdown());
+
+            // Reflect the current settings each time the menu opens (no rebuild/restart needed):
+            // hide "Focus Frame..." when the focus-frame feature is disabled, and refresh its hotkey label.
+            trayMenu.Opening += (s, e) =>
+            {
+                focusFrameItem.Visible = SettingsManager.EnableFocusFrameHotkey;
+                if (focusFrameItem.Visible) focusFrameItem.Text = $"Focus Frame... ({GetFocusFrameHotkeyString()})";
+            };
 
             _trayIcon.ContextMenuStrip = trayMenu;
 

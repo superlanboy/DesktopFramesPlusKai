@@ -623,17 +623,27 @@ namespace Desktop_Frames
 
                 Framemanager.ClickEventAdder(sp, path, Directory.Exists(path));
 
-          
-                // PERF: attach a context menu whose items are built lazily on first open,
-                // instead of allocating 6 MenuItems + handlers for every item at load time.
-                ContextMenu contextMenu = new ContextMenu();
-                contextMenu.Opened += (s, e) =>
+                // Right-click shows the SAME native Windows shell menu as the Details view (themed in
+                // dark mode, full Windows options) — not the old app-specific WPF menu. No per-icon
+                // ContextMenu is allocated; the shell menu is built on demand.
+                sp.PreviewMouseRightButtonUp += (s, e) =>
                 {
-                    if (contextMenu.Items.Count == 0)
-                        PopulatePortalItemMenu(contextMenu, path, sp);
+                    ShowShellMenuForPath(path);
+                    e.Handled = true; // suppress the frame's context menu for an item right-click
                 };
-                sp.ContextMenu = contextMenu;
             }
+        }
+
+        /// <summary>Shows the native Windows shell context menu for a path (shared by icon + details views).</summary>
+        private void ShowShellMenuForPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+            var win = Window.GetWindow(_wpcont);
+            IntPtr hwnd = win != null ? new System.Windows.Interop.WindowInteropHelper(win).Handle : IntPtr.Zero;
+            var src = hwnd != IntPtr.Zero ? System.Windows.Interop.HwndSource.FromHwnd(hwnd) : null;
+            var pos = System.Windows.Forms.Cursor.Position;
+            bool ext = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) != 0;
+            ShellContextMenu.ShowForPath(path, hwnd, src, pos.X, pos.Y, ext);
         }
 
         /// <summary>Builds the per-item right-click menu on demand (lazy, for load performance).</summary>
