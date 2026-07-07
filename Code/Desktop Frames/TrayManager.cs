@@ -261,10 +261,11 @@ namespace Desktop_Frames
             };
             trayMenu.Items.Add(_automationMenuItem);
 
-            trayMenu.Items.Add(new ToolStripSeparator());
+            var smartTopSeparator = new ToolStripSeparator();
+            trayMenu.Items.Add(smartTopSeparator);
 
             // --- SMART DESKTOP OPTIONS ---
-            trayMenu.Items.Add("Smart Desktop Rules...", null, (s, e) =>
+            var smartRulesItem = trayMenu.Items.Add("Smart Desktop Rules...", null, (s, e) =>
             {
                 System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -308,12 +309,21 @@ namespace Desktop_Frames
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add("Exit", null, (s, e) => System.Windows.Application.Current.Shutdown());
 
-            // Reflect the current settings each time the menu opens (no rebuild/restart needed):
-            // hide "Focus Frame..." when the focus-frame feature is disabled, and refresh its hotkey label.
+            // Reflect the current settings each time the menu opens (no rebuild/restart needed).
+            // Disabled features are hidden from the tray; re-enable them from Options.
             trayMenu.Opening += (s, e) =>
             {
                 focusFrameItem.Visible = SettingsManager.EnableFocusFrameHotkey;
                 if (focusFrameItem.Visible) focusFrameItem.Text = $"Focus Frame... ({GetFocusFrameHotkeyString()})";
+
+                _automationMenuItem.Visible = SettingsManager.EnableProfileAutomation;
+
+                bool autoOrg = SettingsManager.EnableAutoOrganize;
+                smartRulesItem.Visible = autoOrg;
+                _autoOrganizeMenuItem.Visible = autoOrg;
+                // Collapse the section's leading separator when the whole Smart Desktop group is hidden,
+                // so we don't leave a double divider.
+                smartTopSeparator.Visible = autoOrg;
             };
 
             _trayIcon.ContextMenuStrip = trayMenu;
