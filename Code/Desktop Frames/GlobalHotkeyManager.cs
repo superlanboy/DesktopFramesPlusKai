@@ -35,6 +35,7 @@ namespace Desktop_Frames
         private const int VK_OEM_COMMA = 0xBC; // , < key
         private const int VK_OEM_PERIOD = 0xBE; // . > key
         private const int VK_ESCAPE = 0x1B;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct KBDLLHOOKSTRUCT
@@ -56,6 +57,9 @@ namespace Desktop_Frames
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
@@ -178,6 +182,18 @@ namespace Desktop_Frames
             bool isWin = (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
 
             return (requireCtrl == isCtrl) && (requireAlt == isAlt) && (requireShift == isShift) && (requireWin == isWin);
+        }
+
+        /// <summary>
+        /// After a Win-modified hotkey fires (whose non-Win key we swallowed), the OS would otherwise
+        /// see a lone Win press/release and open the Start menu. Tapping Ctrl while Win is still held
+        /// counts as intervening input, so the Start menu stays closed — and, crucially, we do NOT
+        /// swallow the Win key-up, so Windows sees Win released and it doesn't get "stuck" down.
+        /// </summary>
+        private static void SuppressStartMenu()
+        {
+            keybd_event((byte)VK_CONTROL, 0, 0, UIntPtr.Zero);                 // Ctrl down
+            keybd_event((byte)VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);   // Ctrl up
         }
 
         private static IntPtr SetHook(LowLevelKeyboardProc proc)
@@ -390,7 +406,7 @@ namespace Desktop_Frames
                                 else
                                     Framemanager.ForceHideFrames();
                             }));
-                            if ((SettingsManager.ToggleFramesModifier ?? "").ToLower().Contains("win")) _swallowNextWinUp = true;
+                            if ((SettingsManager.ToggleFramesModifier ?? "").ToLower().Contains("win")) SuppressStartMenu();
                             return (IntPtr)1; // Swallow so other apps don't process it
                         }
                     }
@@ -412,7 +428,7 @@ namespace Desktop_Frames
                             int vkLocal = (int)vkCode;
                             System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
                                 Framemanager.FocusFrameByHotkey(vkLocal, mask)));
-                            if ((mask & 8) != 0) _swallowNextWinUp = true;
+                            if ((mask & 8) != 0) SuppressStartMenu();
                             return (IntPtr)1; // Swallow so other apps don't process it
                         }
                     }
