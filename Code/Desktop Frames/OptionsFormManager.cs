@@ -313,6 +313,23 @@ namespace Desktop_Frames
             CreateCheckBox(c, "Enable Show/Hide all frames hotkey", "EnableToggleFramesHotkey", SettingsManager.EnableToggleFramesHotkey);
             CreateCheckBox(c, "Striped rows in Portal Details view", "PortalDetailsStriped", SettingsManager.PortalDetailsStriped);
 
+            // Image frames: how dragged/added image files are stored.
+            Grid imgModeGrid = new Grid { Margin = new Thickness(15, 4, 0, 4) };
+            imgModeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            imgModeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var imgLbl = new TextBlock { Text = "When adding images to an Image frame:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
+            Grid.SetColumn(imgLbl, 0);
+            var imgCmb = new ComboBox { Name = "ImageDropModeComboBox", Width = 150, HorizontalAlignment = HorizontalAlignment.Left, Height = 25, FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
+            imgCmb.Items.Add(new ComboBoxItem { Content = "Copy into frame", Tag = "Copy" });
+            imgCmb.Items.Add(new ComboBoxItem { Content = "Link to original", Tag = "Reference" });
+            imgCmb.Items.Add(new ComboBoxItem { Content = "Ask each time", Tag = "Ask" });
+            string curImgMode = SettingsManager.ImageDropMode ?? "Copy";
+            imgCmb.SelectedIndex = curImgMode == "Reference" ? 1 : curImgMode == "Ask" ? 2 : 0;
+            Grid.SetColumn(imgCmb, 1);
+            imgModeGrid.Children.Add(imgLbl);
+            imgModeGrid.Children.Add(imgCmb);
+            c.Children.Add(imgModeGrid);
+
             // Customizable combo for the Show/Hide-all hotkey (press-to-capture).
             string ToggleHotkeyDisp()
             {
@@ -980,6 +997,7 @@ namespace Desktop_Frames
                         var tint = g.Children.OfType<Slider>().FirstOrDefault(s => s.Name == "TintSlider"); if (tint != null) SettingsManager.TintValue = (int)tint.Value; var mtint = g.Children.OfType<Slider>().FirstOrDefault(s => s.Name == "MenuTintSlider"); if (mtint != null) SettingsManager.MenuTintValue = (int)mtint.Value;
                         var col = g.Children.OfType<ComboBox>().FirstOrDefault(c => c.Name == "ColorComboBox"); if (col?.SelectedItem != null) SettingsManager.SelectedColor = col.SelectedItem.ToString();
                         var eff = g.Children.OfType<ComboBox>().FirstOrDefault(c => c.Name == "LaunchEffectComboBox"); if (eff != null) SettingsManager.LaunchEffect = (LaunchEffectsManager.LaunchEffect)eff.SelectedIndex;
+                        var imgMode = g.Children.OfType<ComboBox>().FirstOrDefault(c => c.Name == "ImageDropModeComboBox"); if (imgMode?.SelectedItem is ComboBoxItem imi && imi.Tag != null) SettingsManager.ImageDropMode = imi.Tag.ToString();
 
                         // Parse Sliders (Moved from General)
                         var autoHideTime = g.Children.OfType<Slider>().FirstOrDefault(s => s.Name == "AutoHideTimeSlider"); if (autoHideTime != null) { SettingsManager.AutoHideTime = (int)autoHideTime.Value; Framemanager.ResetAutoHideTimer(); }

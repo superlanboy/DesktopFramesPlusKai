@@ -87,6 +87,8 @@ namespace Desktop_Frames
         public static bool PortalDetailsStriped { get; set; } = true;
         // System-tray icon glyph style: "Nested" | "Stacked" | "Grid" (theme-aware monochrome, drawn in GDI+).
         public static string TrayIconStyle { get; set; } = "Nested";
+        // How dragged image files are added to Image frames: "Copy" (default) | "Reference" | "Ask".
+        public static string ImageDropMode { get; set; } = "Copy";
 
         // --- NEW: Idle Fade-Out Settings ---
         public static bool FramesFadeOutFx { get; set; } = false;
@@ -260,6 +262,7 @@ namespace Desktop_Frames
                 ToggleDesktopIconsOnDoubleClick,
                 PortalDetailsStriped,
                 TrayIconStyle,
+                ImageDropMode,
                 // Idle Fade-Out
                 FramesFadeOutFx,
                 FadeOutFxTargetAlpha,
@@ -358,6 +361,7 @@ namespace Desktop_Frames
             try { ToggleDesktopIconsOnDoubleClick = data.ToggleDesktopIconsOnDoubleClick ?? false; } catch { ToggleDesktopIconsOnDoubleClick = false; }
             try { PortalDetailsStriped = data.PortalDetailsStriped ?? true; } catch { PortalDetailsStriped = true; }
             try { TrayIconStyle = (string)(data.TrayIconStyle ?? "Nested"); } catch { TrayIconStyle = "Nested"; }
+            try { ImageDropMode = (string)(data.ImageDropMode ?? "Copy"); } catch { ImageDropMode = "Copy"; }
 
             // Idle Fade-Out
             try { FramesFadeOutFx = data.FramesFadeOutFx ?? false; } catch { FramesFadeOutFx = false; }

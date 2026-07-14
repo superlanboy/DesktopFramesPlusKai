@@ -1069,6 +1069,14 @@ namespace Desktop_Frames
             };
             menu.Items.Add(newNoteFrameItem);
 
+            MenuItem newImageFrameItem = new MenuItem { Header = "New Image Frame" };
+            newImageFrameItem.Click += (s, e) =>
+            {
+                var mousePosition = System.Windows.Forms.Cursor.Position;
+                CreateNewFrame("", "Image", mousePosition.X, mousePosition.Y);
+            };
+            menu.Items.Add(newImageFrameItem);
+
             menu.Items.Add(new Separator());
 
             // --- REORDERED: Tabs Option First ---
@@ -1106,6 +1114,9 @@ namespace Desktop_Frames
                     }
 
                     BackupManager.BackupDeletedFrame(frame);
+
+                    // Image frames: remove their copied-image asset folder.
+                    if (frame.ItemsType?.ToString() == "Image") ImageFramemanager.DeleteAssetDir(frame.Id?.ToString());
 
                     FrameDataManager.FrameData.Remove(frame);
                     _heartTextBlocks.Remove(frame);
@@ -4798,9 +4809,48 @@ namespace Desktop_Frames
             miRenameFrame.Click += (s, e) => StartRename?.Invoke();
             CnMnFramemanager.Items.Add(miRenameFrame);
             CnMnFramemanager.Items.Add(new Separator());
-        
+
+            // --- Image frame controls (paste / add / content lock). wpcont is created later, so the
+            //     handlers resolve the frame's WrapPanel at click time. ---
+            if (frame.ItemsType?.ToString() == "Image")
+            {
+                WrapPanel ResolveImgWrap()
+                {
+                    string fid = frame.Id?.ToString();
+                    var w = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().FirstOrDefault(x => x.Tag?.ToString() == fid);
+                    return w != null ? FrameUtilities.FindWrapPanel(w) : null;
+                }
+
+                var miLockImages = new MenuItem { Header = "Lock images (prevent edits)", IsCheckable = true, IsChecked = ImageFramemanager.IsLocked(frame) };
+                miLockImages.Click += (s, e) => ImageFramemanager.SetLocked(frame, miLockImages.IsChecked);
+                CnMnFramemanager.Items.Add(miLockImages);
+
+                var miPasteImg = new MenuItem { Header = "Paste image" };
+                miPasteImg.Click += (s, e) => { var wp = ResolveImgWrap(); if (wp != null) ImageFramemanager.HandlePaste(frame, wp); };
+                CnMnFramemanager.Items.Add(miPasteImg);
+
+                var miAddImg = new MenuItem { Header = "Add image from file..." };
+                miAddImg.Click += (s, e) =>
+                {
+                    var wp = ResolveImgWrap(); if (wp == null) return;
+                    var dlg = new Microsoft.Win32.OpenFileDialog { Multiselect = true, Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp;*.tif;*.tiff;*.ico|All files|*.*" };
+                    if (dlg.ShowDialog() == true) foreach (var f in dlg.FileNames) ImageFramemanager.AddFile(frame, wp, f);
+                };
+                CnMnFramemanager.Items.Add(miAddImg);
+
+                CnMnFramemanager.Items.Add(new Separator());
+
+                CnMnFramemanager.Opened += (s, e) =>
+                {
+                    bool locked = ImageFramemanager.IsLocked(frame);
+                    miLockImages.IsChecked = locked;
+                    miPasteImg.IsEnabled = !locked && ImageFramemanager.ClipboardHasImage();
+                    miAddImg.IsEnabled = !locked;
+                };
+            }
+
             MenuItem miNewnoteFrame = new MenuItem { Header = "New Note Frame" };
-        
+
             // --- NEW: Auto Roll Menu Item ---
             MenuItem miAutoRoll = new MenuItem { Header = "Auto roll", IsCheckable = true };
             miAutoRoll.IsChecked = frame.AutoRoll?.ToString().ToLower() == "true";
@@ -6726,6 +6776,13 @@ namespace Desktop_Frames
                 wpcont.Visibility = isRolled ? Visibility.Collapsed : Visibility.Visible;
                 wpcont.Children.Clear();
 
+                // 1b. Image frames: a thumbnail flow in the WrapPanel (added via paste/drop; see ImageFramemanager).
+                if (frame.ItemsType?.ToString() == "Image")
+                {
+                    ImageFramemanager.PopulateImages(frame, wpcont);
+                    return;
+                }
+
                 // 2a. Data frames (The complex logic)
                 if (frame.ItemsType?.ToString() == "Data")
                 {
@@ -6907,6 +6964,14 @@ namespace Desktop_Frames
             win.Drop += (sender, e) =>
             {
                 e.Handled = true;
+
+                // Image frames: route image files / bitmaps to the image manager (honours the lock).
+                if (frame.ItemsType?.ToString() == "Image")
+                {
+                    ImageFramemanager.HandleDrop(frame, wpcont, e);
+                    return;
+                }
+
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
                     string[] droppedFiles = null;
@@ -7920,6 +7985,7 @@ namespace Desktop_Frames
             newframeDict["DetailsGroup"] = "None";
             newframeDict["CustomTint"] = "";
             newframeDict["DetailsStriped"] = ""; // "" = follow global, "On"/"Off" = per-frame override
+            newframeDict["ContentLocked"] = "true"; // Image frames: locked by default (prevents accidental edits)
             newframeDict["HotkeyVk"] = "0";
             newframeDict["HotkeyMods"] = "0";
             // TABS FEATURE: Initialize tab properties for new frames
@@ -9361,6 +9427,7 @@ namespace Desktop_Frames
         {
             "Note" => "✎",   // ✎ pencil
             "Data" => "↗",   // ↗ shortcut/launch arrow
+            "Image" => "\U0001F5BC", // 🖼 monochrome frame-with-picture
             _ => ""
         };
 
