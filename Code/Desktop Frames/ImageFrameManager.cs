@@ -49,17 +49,9 @@ namespace Desktop_Frames
 
         // ---- Lock -----------------------------------------------------------
 
-        public static bool IsLocked(dynamic frame)
-        {
-            try { return (frame.ContentLocked?.ToString() ?? "true").ToLower() != "false"; } catch { return true; }
-        }
-
-        public static void SetLocked(dynamic frame, bool locked)
-        {
-            SetKey(frame, "ContentLocked", locked ? "true" : "false");
-            FrameDataManager.SaveFrameData();
-            Refresh(frame); // update placeholder hint
-        }
+        // Content lock is shared across frame types — delegate to the central helper.
+        public static bool IsLocked(dynamic frame) => Framemanager.IsContentLocked(frame);
+        public static void SetLocked(dynamic frame, bool locked) => Framemanager.SetContentLocked(frame, locked);
 
         // ---- Single-image state --------------------------------------------
 

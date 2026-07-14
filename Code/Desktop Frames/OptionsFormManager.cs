@@ -397,8 +397,8 @@ namespace Desktop_Frames
             CreateIconRadioButtonGroup(menuIconPanel, "MenuIconGroup", new Dictionary<string, int> { { "♥", 0 }, { "☰", 1 }, { "≣", 2 }, { "𓃑", 3 } }, SettingsManager.MenuIcon);
 
             StackPanel lockIconPanel = new StackPanel();
-            lockIconPanel.Children.Add(new TextBlock { Text = "Lock Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
-            CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { "🛡️", 0 }, { "🔑", 1 }, { "🔐", 2 }, { "🔒", 3 } }, SettingsManager.LockIcon);
+            lockIconPanel.Children.Add(new TextBlock { Text = "Pin Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
+            CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { "📌", 0 }, { "🖈", 1 }, { "📍", 2 }, { "🧷", 3 } }, SettingsManager.LockIcon);
 
             Grid.SetColumn(menuIconPanel, 0);
             Grid.SetColumn(lockIconPanel, 1);

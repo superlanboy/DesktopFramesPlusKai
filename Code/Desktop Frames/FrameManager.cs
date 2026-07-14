@@ -4674,23 +4674,24 @@ namespace Desktop_Frames
             // Add a protection symbol in top-right corner
 
 
-            string LockSymbol = "🛡️";
+            // "Pin" = position lock (prevents the frame being moved/resized). Icon options are pins.
+            string LockSymbol = "📌";
 
             if (SettingsManager.LockIcon == 0)
             {
-                LockSymbol = "🛡️";
+                LockSymbol = "📌";
             }
             else if (SettingsManager.LockIcon == 1)
             {
-                LockSymbol = "🔑";
+                LockSymbol = "🖈";
             }
             else if (SettingsManager.LockIcon == 2)
             {
-                LockSymbol = "🔐";
+                LockSymbol = "📍";
             }
             else if (SettingsManager.LockIcon == 3)
             {
-                LockSymbol = "🔒";
+                LockSymbol = "🧷";
             }
 
             //MessageBox.Show(SettingsManager.LockIcon +" " + LockSymbol.ToString());
@@ -4712,7 +4713,7 @@ namespace Desktop_Frames
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
                 Cursor = Cursors.Hand,
-                ToolTip = frame.IsLocked?.ToString().ToLower() == "true" ? "Frame is locked (click to unlock)" : "Frame is unlocked (click to lock)",
+                ToolTip = frame.IsLocked?.ToString().ToLower() == "true" ? "Frame is pinned (click to unpin)" : "Frame is unpinned (click to pin)",
                 Opacity = (double)SettingsManager.MenuTintValue / 100 // 0.3 // Lower tint by default
             };
 
@@ -4810,15 +4811,17 @@ namespace Desktop_Frames
             CnMnFramemanager.Items.Add(miRenameFrame);
             CnMnFramemanager.Items.Add(new Separator());
 
-            // --- Image frame controls (set / clear / copy / content lock) for the single displayed image. ---
+            // --- Content lock (prevents changes): Note = read-only, Data/Portal = no drops,
+            //     Image = no set/clear/paste. Separate from the position "Pin" (title-bar pin icon). ---
+            MenuItem miContentLock = new MenuItem { Header = "Lock (prevent changes)", IsCheckable = true, IsChecked = IsContentLocked(frame) };
+            miContentLock.Click += (s, e) => SetContentLocked(frame, miContentLock.IsChecked);
+            CnMnFramemanager.Items.Add(miContentLock);
+            CnMnFramemanager.Items.Add(new Separator());
+            CnMnFramemanager.Opened += (s, e) => miContentLock.IsChecked = IsContentLocked(frame);
+
+            // --- Image frame controls (set / clear / copy) for the single displayed image. ---
             if (frame.ItemsType?.ToString() == "Image")
             {
-                var miLockImg = new MenuItem { Header = "Lock image (prevent edits)", IsCheckable = true, IsChecked = ImageFramemanager.IsLocked(frame) };
-                miLockImg.Click += (s, e) => ImageFramemanager.SetLocked(frame, miLockImg.IsChecked);
-                CnMnFramemanager.Items.Add(miLockImg);
-
-                CnMnFramemanager.Items.Add(new Separator());
-
                 var miPasteImg = new MenuItem { Header = "Paste image" };
                 miPasteImg.Click += (s, e) => ImageFramemanager.HandlePaste(frame);
                 CnMnFramemanager.Items.Add(miPasteImg);
@@ -4849,7 +4852,6 @@ namespace Desktop_Frames
                 {
                     bool locked = ImageFramemanager.IsLocked(frame);
                     bool has = ImageFramemanager.HasImage(frame);
-                    miLockImg.IsChecked = locked;
                     miPasteImg.IsEnabled = !locked && ImageFramemanager.ClipboardHasImage();
                     miSetImg.IsEnabled = !locked;
                     miClearImg.IsEnabled = !locked && has;
@@ -6987,6 +6989,16 @@ namespace Desktop_Frames
                     return;
                 }
 
+                // Content-locked Data/Portal frames reject drops (Portal drops copy files into the
+                // folder, Data drops add shortcuts — both are "changes").
+                if (IsContentLocked(frame))
+                {
+                    MessageBoxesManager.ShowOKOnlyMessageBoxForm(
+                        "This frame is locked.\nRight-click it and uncheck \"Lock (prevent changes)\" to add items.",
+                        "Frame locked");
+                    return;
+                }
+
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
                     string[] droppedFiles = null;
@@ -8000,7 +8012,8 @@ namespace Desktop_Frames
             newframeDict["DetailsGroup"] = "None";
             newframeDict["CustomTint"] = "";
             newframeDict["DetailsStriped"] = ""; // "" = follow global, "On"/"Off" = per-frame override
-            newframeDict["ContentLocked"] = "true"; // Image frames: locked by default (prevents accidental edits)
+            // Content lock: Image frames locked by default (set-once); Note/Data/Portal editable by default.
+            newframeDict["ContentLocked"] = itemsType == "Image" ? "true" : "false";
             newframeDict["ImageFile"] = "";         // Image frames: the single displayed image (empty = none)
             newframeDict["ImageLinked"] = "false";  // true = link to original file, false = copied into the frame
             newframeDict["HotkeyVk"] = "0";
@@ -8173,7 +8186,7 @@ namespace Desktop_Frames
             {
                 // Update lock icon
                 lockIcon.Foreground = isLocked ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
-                lockIcon.ToolTip = isLocked ? "Frame is locked (click to unlock)" : "frame is unlocked (click to lock)";
+                lockIcon.ToolTip = isLocked ? "Frame is pinned (click to unpin)" : "Frame is unpinned (click to pin)";
 
                 // Find the NonActivatingWindow
                 NonActivatingWindow win = FindVisualParent<NonActivatingWindow>(lockIcon);
@@ -9442,6 +9455,51 @@ namespace Desktop_Frames
                 return s + System.Windows.Input.KeyInterop.KeyFromVirtualKey(vk).ToString();
             }
             catch { return null; }
+        }
+
+        // ===================== Content lock (prevent changes) =====================
+        // Separate from the position "Pin" (IsLocked). ContentLocked blocks edits/additions:
+        // Note = read-only, Data/Portal = no drops, Image = no set/clear/paste.
+
+        /// <summary>True if the frame's content is locked. Missing key defaults to locked only for
+        /// Image frames (set-once), unlocked for Note/Data/Portal so they stay editable by default.</summary>
+        public static bool IsContentLocked(dynamic frame)
+        {
+            try { string v = frame.ContentLocked?.ToString(); if (!string.IsNullOrEmpty(v)) return v.ToLower() != "false"; } catch { }
+            try { return frame.ItemsType?.ToString() == "Image"; } catch { return false; }
+        }
+
+        public static void SetContentLocked(dynamic frame, bool locked)
+        {
+            try
+            {
+                if (frame is IDictionary<string, object> ed) ed["ContentLocked"] = locked ? "true" : "false";
+                else if (frame is JObject jo) jo["ContentLocked"] = locked ? "true" : "false";
+                FrameDataManager.SaveFrameData();
+            }
+            catch { }
+            ApplyContentLock(frame);
+        }
+
+        /// <summary>Applies the current content-lock state to the live frame (e.g. Note read-only).</summary>
+        public static void ApplyContentLock(dynamic frame)
+        {
+            try
+            {
+                string type = frame.ItemsType?.ToString();
+                bool locked = IsContentLocked(frame);
+                if (type == "Image") { ImageFramemanager.Refresh(frame); return; }
+                if (type == "Note")
+                {
+                    string fid = frame.Id?.ToString();
+                    var win = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().FirstOrDefault(w => w.Tag?.ToString() == fid);
+                    var dp = (win?.Content as Border)?.Child as DockPanel;
+                    var tb = dp?.Children.OfType<TextBox>().FirstOrDefault();
+                    if (tb != null) tb.IsReadOnly = locked;
+                }
+                // Data/Portal: enforced at drop time (see win.Drop).
+            }
+            catch { }
         }
 
         /// <summary>Builds a frame-title label's content: plain title, or title + a dimmer/smaller

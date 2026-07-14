@@ -120,6 +120,9 @@ namespace Desktop_Frames
                 // Dark Cut/Copy/Paste menu in dark mode (default WPF editing menu is always light).
                 DarkMenuTheme.AttachEditMenu(noteTextBox);
 
+                // Content lock: a locked note is read-only (toggle via frame menu "Lock (prevent changes)").
+                noteTextBox.IsReadOnly = Framemanager.IsContentLocked(frame);
+
                 // Add to DockPanel (fills remaining space after title)
                 dockPanel.Children.Add(noteTextBox);
 
