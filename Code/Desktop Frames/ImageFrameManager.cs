@@ -11,21 +11,24 @@ using System.Windows.Media.Imaging;
 namespace Desktop_Frames
 {
     /// <summary>
-    /// Image frames (ItemsType == "Image"): a container that holds one or more images added by paste,
-    /// drag-drop, or (Phase 2) region screenshot, shown as a thumbnail flow. Content is locked by
-    /// default (ContentLocked); unlocking allows add/remove. Images are stored as files in a managed
-    /// per-frame asset folder and referenced from the frame's Items array.
+    /// Image frames (ItemsType == "Image"): a frame that displays a SINGLE image filling its content
+    /// area (like a Note frame is a single text box). You move it by dragging the frame, and resize it
+    /// like any frame — the image scales to fit. Content is locked by default (ContentLocked) to prevent
+    /// accidental changes; unlocking lets you paste / drop / set / clear the image.
+    /// The image is stored either copied into a per-frame asset folder or linked to the original file.
     /// </summary>
     public static class ImageFramemanager
     {
         private static readonly string[] ImageExtensions =
             { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff", ".ico" };
 
-        private const int ThumbPx = 96;
+        private const int DisplayCapWidth = 2560; // downscale only very large images (memory-safe)
+
+        // frameId -> the content Grid (Image + placeholder), so we can refresh after add/clear.
+        private static readonly Dictionary<string, Grid> _hosts = new Dictionary<string, Grid>();
 
         // ---- Asset storage --------------------------------------------------
 
-        /// <summary>Per-frame image asset folder under the current profile (created on demand).</summary>
         public static string GetAssetDir(string frameId)
         {
             string dir = Path.Combine(ProfileManager.CurrentProfileDir, "ImageFrames", frameId ?? "unknown");
@@ -33,11 +36,11 @@ namespace Desktop_Frames
             return dir;
         }
 
-        /// <summary>Deletes a frame's whole asset folder (call when the frame itself is deleted).</summary>
         public static void DeleteAssetDir(string frameId)
         {
             try
             {
+                if (!string.IsNullOrEmpty(frameId)) _hosts.Remove(frameId);
                 string dir = Path.Combine(ProfileManager.CurrentProfileDir, "ImageFrames", frameId ?? "unknown");
                 if (Directory.Exists(dir)) Directory.Delete(dir, true);
             }
@@ -53,43 +56,48 @@ namespace Desktop_Frames
 
         public static void SetLocked(dynamic frame, bool locked)
         {
+            SetKey(frame, "ContentLocked", locked ? "true" : "false");
+            FrameDataManager.SaveFrameData();
+            Refresh(frame); // update placeholder hint
+        }
+
+        // ---- Single-image state --------------------------------------------
+
+        private static string GetFile(dynamic frame) { try { return frame.ImageFile?.ToString() ?? ""; } catch { return ""; } }
+        private static bool GetLinked(dynamic frame) { try { return (frame.ImageLinked?.ToString() ?? "false").ToLower() == "true"; } catch { return false; } }
+
+        public static bool HasImage(dynamic frame) => !string.IsNullOrEmpty(GetFile(frame));
+
+        private static string ResolvePath(dynamic frame)
+        {
+            string file = GetFile(frame);
+            if (string.IsNullOrEmpty(file)) return null;
+            if (GetLinked(frame) || Path.IsPathRooted(file)) return file;
+            return Path.Combine(GetAssetDir(frame.Id?.ToString()), file);
+        }
+
+        private static void SetKey(dynamic frame, string key, string value)
+        {
             try
             {
-                if (frame is IDictionary<string, object> ed) ed["ContentLocked"] = locked ? "true" : "false";
-                else if (frame is JObject jo) jo["ContentLocked"] = locked ? "true" : "false";
-                FrameDataManager.SaveFrameData();
+                if (frame is IDictionary<string, object> ed) ed[key] = value;
+                else if (frame is JObject jo) jo[key] = value;
             }
             catch { }
         }
 
-        // ---- Items helpers --------------------------------------------------
-
-        private static JArray GetItems(dynamic frame)
+        /// <summary>Deletes the current copied asset file (no-op for linked images).</summary>
+        private static void DeleteCurrentCopy(dynamic frame)
         {
             try
             {
-                var it = frame.Items;
-                if (it is JArray ja) return ja;
-                if (it is JToken jt && jt.Type == JTokenType.Array) return (JArray)jt;
+                if (HasImage(frame) && !GetLinked(frame))
+                {
+                    string p = ResolvePath(frame);
+                    if (p != null && File.Exists(p)) File.Delete(p);
+                }
             }
             catch { }
-            var arr = new JArray();
-            try
-            {
-                if (frame is IDictionary<string, object> ed) ed["Items"] = arr;
-                else if (frame is JObject jo) jo["Items"] = arr;
-            }
-            catch { }
-            return arr;
-        }
-
-        /// <summary>Resolves an item's on-disk path (copied files are stored as a bare filename).</summary>
-        private static string ResolvePath(string frameId, JToken item)
-        {
-            string file = item?["Filename"]?.ToString() ?? "";
-            bool linked = (item?["Linked"]?.ToString() ?? "false").ToLower() == "true";
-            if (linked || Path.IsPathRooted(file)) return file;
-            return Path.Combine(GetAssetDir(frameId), file);
         }
 
         private static bool IsImageFile(string path)
@@ -98,198 +106,166 @@ namespace Desktop_Frames
             catch { return false; }
         }
 
-        // ---- Rendering ------------------------------------------------------
+        // ---- Content element ------------------------------------------------
 
-        /// <summary>Rebuilds the thumbnail flow for an image frame from its persisted Items.</summary>
-        public static void PopulateImages(dynamic frame, WrapPanel wpcont)
+        /// <summary>Builds the image frame's content (single Image + placeholder) and hosts it in the DockPanel.</summary>
+        public static FrameworkElement CreateImageContent(dynamic frame, DockPanel dp)
         {
-            wpcont.Children.Clear();
             string frameId = frame.Id?.ToString();
-            // NB: type as JArray explicitly — GetItems is called with a dynamic arg, so 'var' would be
-            // 'dynamic' and LINQ extension methods (OfType) can't bind dynamically → RuntimeBinderException.
-            JArray items = GetItems(frame);
-            foreach (var item in items.OfType<JObject>().ToList())
+
+            var grid = new Grid { Margin = new Thickness(2) };
+            var placeholder = new TextBlock
             {
-                string path = ResolvePath(frameId, item);
-                if (!File.Exists(path)) continue; // skip missing (orphan handling)
-                var thumb = BuildThumb(frame, wpcont, item);
-                if (thumb != null) wpcont.Children.Add(thumb);
+                Text = "Drag or paste an image here",
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = System.Windows.Media.Brushes.Gray,
+                Opacity = 0.7,
+                FontSize = 12,
+                IsHitTestVisible = false
+            };
+            var img = new Image { Stretch = Stretch.Uniform };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+
+            grid.Children.Add(placeholder);
+            grid.Children.Add(img);
+            dp.Children.Add(grid);
+
+            if (!string.IsNullOrEmpty(frameId)) _hosts[frameId] = grid;
+            LoadInto(frame, grid);
+            return grid;
+        }
+
+        private static void LoadInto(dynamic frame, Grid grid)
+        {
+            if (grid == null) return;
+            var placeholder = grid.Children.OfType<TextBlock>().FirstOrDefault();
+            var img = grid.Children.OfType<Image>().FirstOrDefault();
+            if (img == null) return;
+
+            string path = ResolvePath(frame);
+            if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            {
+                try { img.Source = LoadDisplayImage(path); img.Visibility = Visibility.Visible; if (placeholder != null) placeholder.Visibility = Visibility.Collapsed; return; }
+                catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"image load: {ex.Message}"); }
+            }
+
+            img.Source = null;
+            img.Visibility = Visibility.Collapsed;
+            if (placeholder != null)
+            {
+                placeholder.Text = IsLocked(frame) ? "No image\n(unlock the frame to add one)" : "Drag or paste an image here";
+                placeholder.Visibility = Visibility.Visible;
             }
         }
 
-        private static FrameworkElement BuildThumb(dynamic frame, WrapPanel wpcont, JObject item)
+        /// <summary>Reloads the displayed image for a frame (after set/clear).</summary>
+        public static void Refresh(dynamic frame)
         {
             string frameId = frame.Id?.ToString();
-            string path = ResolvePath(frameId, item);
-            BitmapImage src;
-            try { src = LoadThumbnail(path, ThumbPx); }
-            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.General, $"thumb load: {ex.Message}"); return null; }
-
-            var img = new Image { Source = src, Width = ThumbPx, Height = ThumbPx, Stretch = Stretch.Uniform };
-            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-
-            var border = new Border
-            {
-                Margin = new Thickness(4),
-                Padding = new Thickness(2),
-                CornerRadius = new CornerRadius(3),
-                Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
-                Child = img,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                ToolTip = item["DisplayName"]?.ToString() ?? Path.GetFileName(path)
-            };
-            border.Tag = item;
-
-            // Double-click opens the image full size in the default viewer.
-            border.MouseLeftButtonDown += (s, e) =>
-            {
-                if (e.ClickCount == 2)
-                {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }); }
-                    catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"open image: {ex.Message}"); }
-                    e.Handled = true;
-                }
-            };
-
-            border.ContextMenu = BuildThumbMenu(frame, wpcont, border, item, path);
-            return border;
+            if (!string.IsNullOrEmpty(frameId) && _hosts.TryGetValue(frameId, out var grid)) LoadInto(frame, grid);
         }
 
-        private static ContextMenu BuildThumbMenu(dynamic frame, WrapPanel wpcont, Border thumb, JObject item, string path)
-        {
-            var cm = new ContextMenu();
+        // ---- Setting the image ---------------------------------------------
 
-            var miOpen = new MenuItem { Header = "Open" };
-            miOpen.Click += (s, e) => { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }); } catch { } };
-            cm.Items.Add(miOpen);
-
-            var miCopy = new MenuItem { Header = "Copy image" };
-            miCopy.Click += (s, e) =>
-            {
-                try { Clipboard.SetImage(LoadFull(path)); }
-                catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"copy image: {ex.Message}"); }
-            };
-            cm.Items.Add(miCopy);
-
-            var miSave = new MenuItem { Header = "Save as..." };
-            miSave.Click += (s, e) => SaveAs(path);
-            cm.Items.Add(miSave);
-
-            cm.Items.Add(new Separator());
-
-            var miDelete = new MenuItem { Header = "Delete" };
-            miDelete.Click += (s, e) => RemoveItem(frame, wpcont, thumb, item);
-            cm.Items.Add(miDelete);
-
-            // Delete is only meaningful when unlocked.
-            cm.Opened += (s, e) => { miDelete.IsEnabled = !IsLocked(frame); };
-
-            DarkMenuTheme.Apply(cm);
-            return cm;
-        }
-
-        // ---- Adding ---------------------------------------------------------
-
-        /// <summary>Saves a bitmap (e.g. a clipboard paste or screenshot) into the frame and shows it.</summary>
-        public static void AddBitmap(dynamic frame, WrapPanel wpcont, BitmapSource bmp, string displayName = null)
+        public static void SetFromBitmap(dynamic frame, BitmapSource bmp)
         {
             if (bmp == null) return;
-            string frameId = frame.Id?.ToString();
             try
             {
-                string file = $"img_{DateTimeStamp()}_{Guid.NewGuid().ToString("N").Substring(0, 6)}.png";
-                string full = Path.Combine(GetAssetDir(frameId), file);
+                string file = $"image_{DateTime.Now:yyyyMMdd_HHmmssfff}.png";
+                string full = Path.Combine(GetAssetDir(frame.Id?.ToString()), file);
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(bmp));
                 using (var fs = new FileStream(full, FileMode.Create)) encoder.Save(fs);
 
-                AppendItem(frame, wpcont, file, displayName ?? "Pasted image", linked: false);
+                DeleteCurrentCopy(frame);
+                SetKey(frame, "ImageFile", file);
+                SetKey(frame, "ImageLinked", "false");
+                FrameDataManager.SaveFrameData();
+                Refresh(frame);
             }
-            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"AddBitmap: {ex.Message}"); }
+            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"SetFromBitmap: {ex.Message}"); }
         }
 
-        /// <summary>Adds an image file, honouring the global copy/reference/ask setting.</summary>
-        public static void AddFile(dynamic frame, WrapPanel wpcont, string sourcePath)
+        public static void SetFromFile(dynamic frame, string sourcePath)
         {
             if (string.IsNullOrEmpty(sourcePath) || !File.Exists(sourcePath) || !IsImageFile(sourcePath)) return;
-            string frameId = frame.Id?.ToString();
 
             string mode = (SettingsManager.ImageDropMode ?? "Copy").ToLower();
             if (mode == "ask")
             {
                 var r = MessageBox.Show(
                     $"Add \"{Path.GetFileName(sourcePath)}\":\n\nYes = copy into the frame (portable)\nNo = link to the original file\nCancel = skip",
-                    "Add image", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+                    "Set image", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
                 if (r == MessageBoxResult.Cancel) return;
                 mode = r == MessageBoxResult.No ? "reference" : "copy";
             }
 
             try
             {
+                DeleteCurrentCopy(frame);
                 if (mode == "reference")
                 {
-                    AppendItem(frame, wpcont, sourcePath, Path.GetFileNameWithoutExtension(sourcePath), linked: true);
+                    SetKey(frame, "ImageFile", sourcePath);
+                    SetKey(frame, "ImageLinked", "true");
                 }
                 else // copy
                 {
-                    string file = $"img_{DateTimeStamp()}_{Guid.NewGuid().ToString("N").Substring(0, 6)}{Path.GetExtension(sourcePath).ToLowerInvariant()}";
-                    string full = Path.Combine(GetAssetDir(frameId), file);
+                    string file = $"image_{DateTime.Now:yyyyMMdd_HHmmssfff}{Path.GetExtension(sourcePath).ToLowerInvariant()}";
+                    string full = Path.Combine(GetAssetDir(frame.Id?.ToString()), file);
                     File.Copy(sourcePath, full, true);
-                    AppendItem(frame, wpcont, file, Path.GetFileNameWithoutExtension(sourcePath), linked: false);
+                    SetKey(frame, "ImageFile", file);
+                    SetKey(frame, "ImageLinked", "false");
                 }
+                FrameDataManager.SaveFrameData();
+                Refresh(frame);
             }
-            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"AddFile: {ex.Message}"); }
+            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Error, LogManager.LogCategory.General, $"SetFromFile: {ex.Message}"); }
         }
 
-        private static void AppendItem(dynamic frame, WrapPanel wpcont, string filename, string displayName, bool linked)
+        public static void ClearImage(dynamic frame)
         {
-            JArray items = GetItems(frame);
-            var item = new JObject
-            {
-                ["Filename"] = filename,
-                ["DisplayName"] = displayName,
-                ["Linked"] = linked ? "true" : "false",
-                ["IsImage"] = "true"
-            };
-            items.Add(item);
+            if (LockedGuard(frame)) return;
+            DeleteCurrentCopy(frame);
+            SetKey(frame, "ImageFile", "");
+            SetKey(frame, "ImageLinked", "false");
             FrameDataManager.SaveFrameData();
-
-            var thumb = BuildThumb(frame, wpcont, item);
-            if (thumb != null) wpcont.Children.Add(thumb);
+            Refresh(frame);
         }
 
-        private static void RemoveItem(dynamic frame, WrapPanel wpcont, Border thumb, JObject item)
+        public static void CopyToClipboard(dynamic frame)
         {
-            if (IsLocked(frame)) return;
-            string frameId = frame.Id?.ToString();
+            try { string p = ResolvePath(frame); if (p != null && File.Exists(p)) Clipboard.SetImage(LoadFull(p)); }
+            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"copy image: {ex.Message}"); }
+        }
+
+        public static void SaveAs(dynamic frame)
+        {
             try
             {
-                bool linked = (item["Linked"]?.ToString() ?? "false").ToLower() == "true";
-                string path = ResolvePath(frameId, item);
-                item.Remove();               // drop from the Items array
-                FrameDataManager.SaveFrameData();
-                wpcont.Children.Remove(thumb);
-                if (!linked && File.Exists(path)) { try { File.Delete(path); } catch { } } // delete copied asset
+                string p = ResolvePath(frame);
+                if (p == null || !File.Exists(p)) return;
+                var dlg = new Microsoft.Win32.SaveFileDialog { FileName = Path.GetFileName(p), Filter = "Image|*" + Path.GetExtension(p) + "|All files|*.*" };
+                if (dlg.ShowDialog() == true) File.Copy(p, dlg.FileName, true);
             }
-            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.General, $"RemoveItem: {ex.Message}"); }
+            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"SaveAs: {ex.Message}"); }
         }
 
         // ---- Paste & Drop ---------------------------------------------------
 
-        /// <summary>Pastes an image (bitmap or image file list) from the clipboard into the frame.</summary>
-        public static void HandlePaste(dynamic frame, WrapPanel wpcont)
+        public static void HandlePaste(dynamic frame)
         {
             if (LockedGuard(frame)) return;
             try
             {
-                if (Clipboard.ContainsImage())
-                {
-                    AddBitmap(frame, wpcont, Clipboard.GetImage());
-                    return;
-                }
+                if (Clipboard.ContainsImage()) { SetFromBitmap(frame, Clipboard.GetImage()); return; }
                 if (Clipboard.ContainsFileDropList())
                 {
-                    foreach (string f in Clipboard.GetFileDropList()) if (IsImageFile(f)) AddFile(frame, wpcont, f);
+                    string f = Clipboard.GetFileDropList().Cast<string>().FirstOrDefault(IsImageFile);
+                    if (f != null) SetFromFile(frame, f);
                 }
             }
             catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"HandlePaste: {ex.Message}"); }
@@ -301,22 +277,20 @@ namespace Desktop_Frames
             catch { return false; }
         }
 
-        /// <summary>Routes a drop onto an image frame: image files (copy/reference) and raw bitmaps.</summary>
-        public static void HandleDrop(dynamic frame, WrapPanel wpcont, DragEventArgs e)
+        /// <summary>Routes a drop onto an image frame — the first image file, or a raw bitmap, becomes THE image.</summary>
+        public static void HandleDrop(dynamic frame, DragEventArgs e)
         {
             if (LockedGuard(frame)) return;
             try
             {
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
-                    var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                    foreach (var f in files) if (IsImageFile(f)) AddFile(frame, wpcont, f);
+                    string f = ((string[])e.Data.GetData(DataFormats.FileDrop)).FirstOrDefault(IsImageFile);
+                    if (f != null) SetFromFile(frame, f);
                     return;
                 }
-                if (e.Data.GetDataPresent(DataFormats.Bitmap))
-                {
-                    if (e.Data.GetData(DataFormats.Bitmap) is BitmapSource bmp) AddBitmap(frame, wpcont, bmp, "Dropped image");
-                }
+                if (e.Data.GetDataPresent(DataFormats.Bitmap) && e.Data.GetData(DataFormats.Bitmap) is BitmapSource bmp)
+                    SetFromBitmap(frame, bmp);
             }
             catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"HandleDrop: {ex.Message}"); }
         }
@@ -325,20 +299,32 @@ namespace Desktop_Frames
         {
             if (!IsLocked(frame)) return false;
             MessageBoxesManager.ShowOKOnlyMessageBoxForm(
-                "This image frame is locked.\nRight-click the frame and choose \"Unlock images\" to make changes.",
+                "This image frame is locked.\nRight-click the frame and uncheck \"Lock image\" to make changes.",
                 "Image frame locked");
             return true;
         }
 
-        // ---- Utilities ------------------------------------------------------
+        // ---- Loading --------------------------------------------------------
 
-        private static BitmapImage LoadThumbnail(string path, int px)
+        private static BitmapImage LoadDisplayImage(string path)
         {
+            int decodeW = 0; // 0 = decode at native size
+            try
+            {
+                using (var fs = File.OpenRead(path))
+                {
+                    var dec = BitmapDecoder.Create(fs, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+                    int nativeW = dec.Frames[0].PixelWidth;
+                    if (nativeW > DisplayCapWidth) decodeW = DisplayCapWidth; // only downscale huge images
+                }
+            }
+            catch { }
+
             var bi = new BitmapImage();
             bi.BeginInit();
-            bi.CacheOption = BitmapCacheOption.OnLoad;   // don't keep the file locked
+            bi.CacheOption = BitmapCacheOption.OnLoad;      // don't keep the file locked
             bi.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
-            bi.DecodePixelWidth = px;                    // decode at thumbnail size (memory-safe)
+            if (decodeW > 0) bi.DecodePixelWidth = decodeW;
             bi.UriSource = new Uri(path, UriKind.Absolute);
             bi.EndInit();
             if (bi.CanFreeze) bi.Freeze();
@@ -355,22 +341,5 @@ namespace Desktop_Frames
             if (bi.CanFreeze) bi.Freeze();
             return bi;
         }
-
-        private static void SaveAs(string sourcePath)
-        {
-            try
-            {
-                var dlg = new Microsoft.Win32.SaveFileDialog
-                {
-                    FileName = Path.GetFileName(sourcePath),
-                    Filter = "Image|*" + Path.GetExtension(sourcePath) + "|All files|*.*"
-                };
-                if (dlg.ShowDialog() == true) File.Copy(sourcePath, dlg.FileName, true);
-            }
-            catch (Exception ex) { LogManager.Log(LogManager.LogLevel.Warn, LogManager.LogCategory.UI, $"SaveAs: {ex.Message}"); }
-        }
-
-        // Date.Now is fine here (runtime action, not a workflow script).
-        private static string DateTimeStamp() => DateTime.Now.ToString("yyyyMMdd_HHmmssfff");
     }
 }
