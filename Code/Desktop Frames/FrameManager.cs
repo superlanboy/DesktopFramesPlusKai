@@ -6569,6 +6569,7 @@ namespace Desktop_Frames
                         if (!isLocked)
                         {
                             win.DragMove();
+                            SnapManager.SnapNow(win); // snap once when the drag ends (no mid-drag wobble)
                             LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation, $"Dragging frame '{currentFrame.Title}'");
                         }
                         else

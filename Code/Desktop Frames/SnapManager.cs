@@ -12,42 +12,34 @@ namespace Desktop_Frames
         private const double SnapThreshold = 20; // Reduced slightly for tighter feel
         private const double MinGap = 10;        // Gap between snapped frames
 
-        // Recursion guard to prevent the "fighting" loop
-        private static bool _isSnapping = false;
+        /// <summary>
+        /// Deprecated. Continuous per-move snapping (on LocationChanged while the mouse was down)
+        /// fought DragMove — the OS pulled the window toward the mouse while this pulled it toward the
+        /// snap line every frame, causing a visible "wobble" — and it wrote frames.json on every move.
+        /// Snapping now happens once when the drag ends via <see cref="SnapNow"/>. Kept as a no-op so
+        /// existing call sites still compile.
+        /// </summary>
+        public static void AddSnapping(NonActivatingWindow win, IDictionary<string, object> FrameData) { }
 
-        public static void AddSnapping(NonActivatingWindow win, IDictionary<string, object> FrameData)
+        /// <summary>
+        /// Snaps the window to nearby frame edges / screen edges ONCE. Call when a drag finishes
+        /// (after DragMove returns) so there's no fight with the OS move loop. The frame's own
+        /// LocationChanged handler persists the resulting X/Y.
+        /// </summary>
+        public static void SnapNow(NonActivatingWindow win)
         {
-            win.LocationChanged += (sender, e) =>
+            if (win == null || !SettingsManager.IsSnapEnabled) return;
+            try
             {
-                // 1. Prevent Recursive Calls
-                if (_isSnapping) return;
-
-                // 2. Only snap if the user is actually doing the moving ( Mouse is Down )
-                // This prevents weird jumps during programmatic animations or restore
-                if (Control.MouseButtons != MouseButtons.Left) return;
-
-                _isSnapping = true;
-
-                try
+                var allFrames = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().ToList();
+                var (newLeft, newTop) = CalculateSnapPosition(win, allFrames);
+                if (Math.Abs(win.Left - newLeft) > 0.1 || Math.Abs(win.Top - newTop) > 0.1)
                 {
-                    var allFrames = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().ToList();
-                    var (newLeft, newTop) = CalculateSnapPosition(win, allFrames);
-
-                    // Only apply if changed to reduce render jitter
-                    if (Math.Abs(win.Left - newLeft) > 0.1 || Math.Abs(win.Top - newTop) > 0.1)
-                    {
-                        win.Left = newLeft;
-                        win.Top = newTop;
-                        FrameData["X"] = newLeft;
-                        FrameData["Y"] = newTop;
-                        FrameDataManager.SaveFrameData();
-                    }
+                    win.Left = newLeft;
+                    win.Top = newTop;
                 }
-                finally
-                {
-                    _isSnapping = false;
-                }
-            };
+            }
+            catch { }
         }
 
         private static (double, double) CalculateSnapPosition(NonActivatingWindow current, List<NonActivatingWindow> allFrames)
