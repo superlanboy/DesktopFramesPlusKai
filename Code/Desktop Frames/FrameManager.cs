@@ -4914,6 +4914,10 @@ namespace Desktop_Frames
                 Title = frame.Title?.ToString() ?? "New Frame", // Handle null title
                 ShowInTaskbar = false,
                 WindowStyle = WindowStyle.None,
+                // Snap content to device pixels — stops the sub-pixel "wobble"/shimmer of frame content
+                // (most visible on images/text) while dragging these layered/transparent windows. Inherits
+                // to all descendants, so it applies to every frame type.
+                UseLayoutRounding = true,
                 Content = cborder,
                 ResizeMode = frame.IsLocked?.ToString().ToLower() == "true" ? ResizeMode.NoResize : ResizeMode.CanResizeWithGrip,
                 Topmost = frame.AlwaysOnTop?.ToString().ToLower() == "true", // --- NEW: Apply Always On Top ---
