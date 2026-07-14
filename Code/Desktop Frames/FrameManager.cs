@@ -4728,7 +4728,10 @@ namespace Desktop_Frames
 
             lockIcon.MouseLeave += (s, e) =>
             {
-                double targetOpacity = (double)SettingsManager.MenuTintValue / 100;
+                // Pinned rests at full opacity (bright/solid), unpinned rests dim — this is the
+                // visible state cue for emoji pins (📌/📍) that ignore the DeepPink colour change.
+                bool pinned = lockIcon.Foreground == System.Windows.Media.Brushes.DeepPink;
+                double targetOpacity = pinned ? 1.0 : (double)SettingsManager.MenuTintValue / 100;
 
                 DoubleAnimation fadeBack = new DoubleAnimation
                 {
@@ -4800,7 +4803,8 @@ namespace Desktop_Frames
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0, GridUnitType.Pixel) }); // Col 0: Spacer
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Col 1: Title
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // Col 2: Filter Icon (Auto width)
-            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30, GridUnitType.Pixel) }); // Col 3: Lock Icon
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22, GridUnitType.Pixel) }); // Col 3: Content-lock button
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30, GridUnitType.Pixel) }); // Col 4: Pin Icon
                                                                                                                       // End of ctrl+click handler
             ContextMenu CnMnFramemanager = new ContextMenu();
             DarkMenuTheme.Apply(CnMnFramemanager); // follow OS dark mode (implicit styles cascade to items added later)
@@ -6347,9 +6351,47 @@ namespace Desktop_Frames
 
 
             // Move lockIcon to the Grid
-            Grid.SetColumn(lockIcon, 3); // Moved to Column 3
+            Grid.SetColumn(lockIcon, 4); // Pin icon (rightmost)
             Grid.SetRow(lockIcon, 0);
             titleGrid.Children.Add(lockIcon);
+
+            // Content-lock button (padlock): toggles ContentLocked (prevents changes). Closed 🔒 = locked,
+            // open 🔓 = unlocked — the glyph swap is the state cue. Separate from the Pin (position).
+            TextBlock contentLockIcon = new TextBlock
+            {
+                Name = "FrameContentLockIcon",
+                Text = IsContentLocked(frame) ? "🔒" : "🔓",
+                FontSize = 13,
+                Foreground = System.Windows.Media.Brushes.White,
+                Margin = new Thickness(0, 3, 2, 0),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Cursor = Cursors.Hand,
+                ToolTip = IsContentLocked(frame) ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)",
+                Opacity = (double)SettingsManager.MenuTintValue / 100
+            };
+            contentLockIcon.MouseEnter += (s, e) => { contentLockIcon.BeginAnimation(UIElement.OpacityProperty, null); contentLockIcon.Opacity = 1.0; };
+            contentLockIcon.MouseLeave += (s, e) =>
+            {
+                var fb = new DoubleAnimation { From = 1.0, To = (double)SettingsManager.MenuTintValue / 100, Duration = TimeSpan.FromMilliseconds(300), BeginTime = TimeSpan.FromMilliseconds(800) };
+                contentLockIcon.BeginAnimation(UIElement.OpacityProperty, fb);
+            };
+            contentLockIcon.MouseLeftButtonDown += (s, e) =>
+            {
+                if (e.ChangedButton != MouseButton.Left) return;
+                var w = FindVisualParent<NonActivatingWindow>(contentLockIcon);
+                var cf = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == w?.Tag?.ToString());
+                if (cf == null) return;
+                bool now = !IsContentLocked(cf);
+                SetContentLocked(cf, now);
+                contentLockIcon.Text = now ? "🔒" : "🔓";
+                contentLockIcon.ToolTip = now ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)";
+                e.Handled = true;
+            };
+            Grid.SetColumn(contentLockIcon, 3);
+            Grid.SetRow(contentLockIcon, 0);
+            Panel.SetZIndex(contentLockIcon, 100);
+            titleGrid.Children.Add(contentLockIcon);
             // Overlay the heart (menu ☰) on the shaded titleGrid (spans all columns, left-aligned) so
             // the title-bar shading extends behind it instead of leaving a notch.
             Grid.SetColumn(heart, 0);
@@ -8186,6 +8228,9 @@ namespace Desktop_Frames
             {
                 // Update lock icon
                 lockIcon.Foreground = isLocked ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
+                // Brightness cue (works for emoji pins too): pinned = full/solid, unpinned = dim.
+                lockIcon.BeginAnimation(UIElement.OpacityProperty, null); // clear any running fade
+                lockIcon.Opacity = isLocked ? 1.0 : (double)SettingsManager.MenuTintValue / 100;
                 lockIcon.ToolTip = isLocked ? "Frame is pinned (click to unpin)" : "Frame is unpinned (click to pin)";
 
                 // Find the NonActivatingWindow
@@ -9481,18 +9526,27 @@ namespace Desktop_Frames
             ApplyContentLock(frame);
         }
 
-        /// <summary>Applies the current content-lock state to the live frame (e.g. Note read-only).</summary>
+        /// <summary>Applies the current content-lock state to the live frame (title-bar button glyph,
+        /// Note read-only, Image refresh). Data/Portal are enforced at drop time.</summary>
         public static void ApplyContentLock(dynamic frame)
         {
             try
             {
                 string type = frame.ItemsType?.ToString();
                 bool locked = IsContentLocked(frame);
+                string fid = frame.Id?.ToString();
+                var win = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().FirstOrDefault(w => w.Tag?.ToString() == fid);
+
+                // Keep the title-bar content-lock button in sync (e.g. toggled via the context menu).
+                if (win != null && FindDescendantByName(win, "FrameContentLockIcon") is TextBlock icon)
+                {
+                    icon.Text = locked ? "🔒" : "🔓";
+                    icon.ToolTip = locked ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)";
+                }
+
                 if (type == "Image") { ImageFramemanager.Refresh(frame); return; }
                 if (type == "Note")
                 {
-                    string fid = frame.Id?.ToString();
-                    var win = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().FirstOrDefault(w => w.Tag?.ToString() == fid);
                     var dp = (win?.Content as Border)?.Child as DockPanel;
                     var tb = dp?.Children.OfType<TextBox>().FirstOrDefault();
                     if (tb != null) tb.IsReadOnly = locked;
@@ -9500,6 +9554,20 @@ namespace Desktop_Frames
                 // Data/Portal: enforced at drop time (see win.Drop).
             }
             catch { }
+        }
+
+        /// <summary>Finds the first descendant FrameworkElement with the given Name in the visual tree.</summary>
+        private static FrameworkElement FindDescendantByName(DependencyObject root, string name)
+        {
+            if (root == null) return null;
+            if (root is FrameworkElement fe && fe.Name == name) return fe;
+            int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var found = FindDescendantByName(System.Windows.Media.VisualTreeHelper.GetChild(root, i), name);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         /// <summary>Builds a frame-title label's content: plain title, or title + a dimmer/smaller
