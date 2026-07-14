@@ -105,7 +105,9 @@ namespace Desktop_Frames
         {
             wpcont.Children.Clear();
             string frameId = frame.Id?.ToString();
-            var items = GetItems(frame);
+            // NB: type as JArray explicitly — GetItems is called with a dynamic arg, so 'var' would be
+            // 'dynamic' and LINQ extension methods (OfType) can't bind dynamically → RuntimeBinderException.
+            JArray items = GetItems(frame);
             foreach (var item in items.OfType<JObject>().ToList())
             {
                 string path = ResolvePath(frameId, item);
@@ -241,7 +243,7 @@ namespace Desktop_Frames
 
         private static void AppendItem(dynamic frame, WrapPanel wpcont, string filename, string displayName, bool linked)
         {
-            var items = GetItems(frame);
+            JArray items = GetItems(frame);
             var item = new JObject
             {
                 ["Filename"] = filename,
