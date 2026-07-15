@@ -4686,9 +4686,9 @@ namespace Desktop_Frames
                 FontFamily = GlyphIconFont,
                 FontSize = 14,
                 Foreground = frame.IsLocked?.ToString().ToLower() == "true" ? System.Windows.Media.Brushes.Red : System.Windows.Media.Brushes.White,
-                Margin = new Thickness(0, 3, 2, 0), // Adjusted for top-right positioning
+                Margin = new Thickness(0, 0, 2, 0),
                 HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
+                VerticalAlignment = VerticalAlignment.Center, // centre-align to match the filter/content-lock icons (glyph bearings differ)
                 Cursor = Cursors.Hand,
                 ToolTip = frame.IsLocked?.ToString().ToLower() == "true" ? "Frame is pinned (click to unpin)" : "Frame is unpinned (click to pin)",
                 Opacity = (double)SettingsManager.MenuTintValue / 100 // 0.3 // Lower tint by default
@@ -6341,11 +6341,11 @@ namespace Desktop_Frames
                 Name = "FrameContentLockIcon",
                 Text = IsContentLocked(frame) ? LockGlyphClosed : LockGlyphOpen,
                 FontFamily = GlyphIconFont,
-                FontSize = 13,
+                FontSize = 14,
                 Foreground = System.Windows.Media.Brushes.White,
-                Margin = new Thickness(0, 3, 2, 0),
+                Margin = new Thickness(0, 0, 2, 0),
                 HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
+                VerticalAlignment = VerticalAlignment.Center, // centre-align to match the filter/pin icons
                 Cursor = Cursors.Hand,
                 ToolTip = IsContentLocked(frame) ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)",
                 Opacity = (double)SettingsManager.MenuTintValue / 100
