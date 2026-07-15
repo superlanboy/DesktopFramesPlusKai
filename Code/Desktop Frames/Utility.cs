@@ -372,6 +372,15 @@ namespace Desktop_Frames
                         menuIcon.Opacity = iconOpacity;
                     }
 
+                    // Filter icon: refresh the glyph only — Foreground/Opacity carry the "filter active"
+                    // (orange) state and are managed by the filter handlers.
+                    var filterIcon = FindChild<TextBlock>(win, "FrameFilterIcon");
+                    if (filterIcon != null)
+                    {
+                        filterIcon.FontFamily = Framemanager.GlyphIconFont;
+                        filterIcon.Text = Framemanager.FilterGlyph(SettingsManager.FilterIcon);
+                    }
+
                     var lockIcon = FindChild<TextBlock>(win, "FrameLockIcon");
                     if (lockIcon != null)
                     {

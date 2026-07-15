@@ -43,6 +43,8 @@ namespace Desktop_Frames
         public static int MenuTintValue { get; set; } = 30;
         public static int MenuIcon { get; set; } = 0;
         public static int LockIcon { get; set; } = 0;
+        // Filter/search title-bar icon: 0 = magnifier, 1 = funnel, 2 = boxed magnifier.
+        public static int FilterIcon { get; set; } = 0;
         public static string SelectedColor { get; set; } = "Gray";
         public static bool IsLogEnabled { get; set; } = false;
         public static int MaxDisplayNameLength { get; set; } = 20;
@@ -215,6 +217,7 @@ namespace Desktop_Frames
                 MenuTintValue,
                 MenuIcon,
                 LockIcon,
+                FilterIcon,
                 SelectedColor,
                 IsLogEnabled,
                 SingleClickToLaunch,
@@ -326,6 +329,8 @@ namespace Desktop_Frames
             try { MenuIcon = data.MenuIcon ?? 0; } catch { MenuIcon = 0; }
             try { LockIcon = data.LockIcon ?? 0; } catch { LockIcon = 0; }
             if (LockIcon < 0 || LockIcon > 1) LockIcon = 0; // old emoji configs stored 0-3; new scheme is 0=map pin, 1=pushpin
+            try { FilterIcon = data.FilterIcon ?? 0; } catch { FilterIcon = 0; }
+            if (FilterIcon < 0 || FilterIcon > 2) FilterIcon = 0;
             try { SelectedColor = data.SelectedColor ?? "Gray"; } catch { SelectedColor = "Gray"; }
             try { IsLogEnabled = data.IsLogEnabled ?? false; } catch { IsLogEnabled = false; }
             try { SingleClickToLaunch = data.SingleClickToLaunch ?? true; } catch { SingleClickToLaunch = true; }

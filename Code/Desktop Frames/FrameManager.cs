@@ -5895,8 +5895,9 @@ namespace Desktop_Frames
                 TextBlock filterIcon = new TextBlock
                 {
                     Name = "FrameFilterIcon", // New! Name
-                    Text = "❖",
-                    FontSize = 18,
+                    Text = FilterGlyph(SettingsManager.FilterIcon),
+                    FontFamily = GlyphIconFont, // same crisp Fluent font as the pin/content-lock icons
+                    FontSize = 14,
                     Foreground = hasInitialFilter ? System.Windows.Media.Brushes.Orange : System.Windows.Media.Brushes.White,
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -9574,6 +9575,15 @@ namespace Desktop_Frames
         public const string PinGlyphPush = "";  // Pinned    (diagonal pushpin)
         public static string PinGlyph(int style) => style == 1 ? PinGlyphPush : PinGlyphMap;
         public const int PinStyleCount = 2;
+
+        // Filter/search title-bar icon styles. 0 = magnifier (Search), 1 = funnel (Filter),
+        // 2 = boxed magnifier (SearchApps). Out-of-range collapses to the magnifier.
+        public static string FilterGlyph(int style) => style switch
+        {
+            1 => "", // funnel
+            2 => "", // boxed magnifier
+            _ => "", // magnifier
+        };
 
         // Content lock (prevents changes). Closed padlock = locked, open padlock = unlocked.
         public const string LockGlyphClosed = ""; // Lock

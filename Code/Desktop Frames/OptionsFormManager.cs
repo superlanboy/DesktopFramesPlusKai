@@ -401,11 +401,23 @@ namespace Desktop_Frames
             lockIconPanel.Children.Add(new TextBlock { Text = "Pin Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
             CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { Framemanager.PinGlyphMap, 0 }, { Framemanager.PinGlyphPush, 1 } }, SettingsManager.LockIcon <= 1 ? SettingsManager.LockIcon : 0, "Segoe Fluent Icons, Segoe MDL2 Assets");
 
+            // Filter/search icon (frame title bar): magnifier / funnel / boxed magnifier.
+            StackPanel filterIconPanel = new StackPanel();
+            filterIconPanel.Children.Add(new TextBlock { Text = "Filter Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
+            CreateIconRadioButtonGroup(filterIconPanel, "FilterIconGroup", new Dictionary<string, int> { { Framemanager.FilterGlyph(0), 0 }, { Framemanager.FilterGlyph(1), 1 }, { Framemanager.FilterGlyph(2), 2 } }, SettingsManager.FilterIcon, "Segoe Fluent Icons, Segoe MDL2 Assets");
+
             Grid.SetColumn(menuIconPanel, 0);
             Grid.SetColumn(lockIconPanel, 1);
             iconGrid.Children.Add(menuIconPanel);
             iconGrid.Children.Add(lockIconPanel);
             c.Children.Add(iconGrid);
+
+            Grid filterIconGrid = new Grid { Margin = new Thickness(15, 0, 0, 15) };
+            filterIconGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            filterIconGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(filterIconPanel, 0);
+            filterIconGrid.Children.Add(filterIconPanel);
+            c.Children.Add(filterIconGrid);
 
             // System tray icon style — visual radio group with a preview of each style (theme-aware
             // minimalist glyph, drawn in GDI+ at runtime). Parsed in the save handler via "TrayIconGroup".
@@ -1014,6 +1026,7 @@ namespace Desktop_Frames
                             {
                                 if (rbSp.Tag?.ToString() == "MenuIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.MenuIcon = (int)rb.Tag;
                                 if (rbSp.Tag?.ToString() == "LockIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.LockIcon = (int)rb.Tag;
+                                if (rbSp.Tag?.ToString() == "FilterIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.FilterIcon = (int)rb.Tag;
                                 if (rbSp.Tag?.ToString() == "TrayIconGroup") foreach (RadioButton rb in rbSp.Children.OfType<RadioButton>()) if (rb.IsChecked == true) SettingsManager.TrayIconStyle = (string)rb.Tag;
                             }
                         }
