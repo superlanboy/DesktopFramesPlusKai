@@ -63,6 +63,10 @@ namespace Desktop_Frames
                                 // Create the main TextBox for note content
                                 TextBox noteTextBox = new TextBox
                 {
+                    // Named so the content-lock lookup can find it by walking the visual tree — the note's
+                    // tree gets restructured (Border.Child swapped to an overlay Grid) the first time it's
+                    // focused, so a hard-coded Border→DockPanel path breaks after the first edit.
+                    Name = "NoteEditBox",
                     // Content and behavior
                     Text = noteContent,
                     AcceptsReturn = true,
@@ -276,6 +280,10 @@ namespace Desktop_Frames
                 // Handle focus - show editing state and optional Done button
                 noteTextBox.GotFocus += (s, e) =>
                 {
+                    // Content-locked note: no edit-mode visuals (highlight/border/Done button). It stays
+                    // read-only, so there's nothing to edit — don't imply otherwise.
+                    if (noteTextBox.IsReadOnly) return;
+
                     LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation,
                         "TextBox got focus - entering edit mode");
 

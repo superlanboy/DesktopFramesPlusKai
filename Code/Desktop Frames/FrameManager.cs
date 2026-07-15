@@ -9527,9 +9527,9 @@ namespace Desktop_Frames
                 if (type == "Image") { ImageFramemanager.Refresh(frame); return; }
                 if (type == "Note")
                 {
-                    var dp = (win?.Content as Border)?.Child as DockPanel;
-                    var tb = dp?.Children.OfType<TextBox>().FirstOrDefault();
-                    if (tb != null) tb.IsReadOnly = locked;
+                    // Walk the whole visual tree — the note's Border.Child is swapped to an overlay Grid
+                    // after the first focus, so a fixed Border→DockPanel path would miss the TextBox.
+                    if (win != null && FindDescendantByName(win, "NoteEditBox") is TextBox tb) tb.IsReadOnly = locked;
                 }
                 // Data/Portal: enforced at drop time (see win.Drop).
             }
