@@ -9529,7 +9529,15 @@ namespace Desktop_Frames
                 {
                     // Walk the whole visual tree — the note's Border.Child is swapped to an overlay Grid
                     // after the first focus, so a fixed Border→DockPanel path would miss the TextBox.
-                    if (win != null && FindDescendantByName(win, "NoteEditBox") is TextBox tb) tb.IsReadOnly = locked;
+                    if (win != null && FindDescendantByName(win, "NoteEditBox") is TextBox tb)
+                    {
+                        tb.IsReadOnly = locked;
+                        // Locking mid-edit: force the note out of edit mode directly (saves the text,
+                        // restores visuals, re-enables focus prevention). Deliberately NOT done by moving
+                        // focus — Window.Focus()/ClearFocus are unreliable on non-activating windows and
+                        // previously left notes stuck in or out of edit mode.
+                        if (locked) NoteFramemanager.ForceEndEdit(tb);
+                    }
                 }
                 // Data/Portal: enforced at drop time (see win.Drop).
             }

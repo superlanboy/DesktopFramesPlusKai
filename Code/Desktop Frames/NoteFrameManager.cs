@@ -277,15 +277,41 @@ namespace Desktop_Frames
 
                 Button doneButton = null;
 
-                // Handle focus - show editing state and optional Done button
-                noteTextBox.GotFocus += (s, e) =>
+                // Edit mode is tracked with an explicit flag instead of being inferred from focus events.
+                // On a non-activating (WS_EX_NOACTIVATE) window, focus events are unreliable: Window.Focus()
+                // can silently fail, and a click doesn't re-fire GotFocus when the box kept stale WPF focus.
+                // That previously left notes stuck in (white bg, no typing) or out of (typing, no visuals)
+                // edit mode after content-lock toggles.
+                bool inEditMode = false;
+                Action enterEditMode = null;
+                Action<bool> exitEditMode = null;
+
+                // Clicking an editable note must also make the frame the real OS foreground window —
+                // otherwise the TextBox gets WPF focus but keystrokes keep flowing to the previous
+                // foreground app. ForceForeground() does the AttachThreadInput + SetForegroundWindow dance
+                // (same as title rename's interactive edit). Mouse-down (not GotFocus) so it also runs when
+                // the box already has stale WPF focus and GotFocus wouldn't fire again.
+                noteTextBox.PreviewMouseLeftButtonDown += (s, e) =>
                 {
-                    // Content-locked note: no edit-mode visuals (highlight/border/Done button). It stays
-                    // read-only, so there's nothing to edit — don't imply otherwise.
                     if (noteTextBox.IsReadOnly) return;
+                    var pWin = FindParentWindow(noteTextBox);
+                    if (pWin is NonActivatingWindow naw && !naw.IsActive)
+                    {
+                        naw.ForceForeground();
+                        // Not handled: let the click continue to place the caret / set focus normally.
+                    }
+                    enterEditMode();
+                };
+
+                // Entering edit mode: highlight visuals + Done button. Idempotent via the flag, so it runs
+                // exactly once whether triggered by GotFocus or directly from a mouse click.
+                enterEditMode = () =>
+                {
+                    if (inEditMode || noteTextBox.IsReadOnly) return;
+                    inEditMode = true;
 
                     LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation,
-                        "TextBox got focus - entering edit mode");
+                        "TextBox entering edit mode");
 
 					// --- FIX START: Get Fresh Data ---
 					// Retrieve the latest frame data from the global list to ensure we use the NEW color
@@ -336,18 +362,17 @@ namespace Desktop_Frames
                             Cursor = Cursors.Hand,
                             ToolTip = "Click to finish editing",
                             Visibility = Visibility.Collapsed,
+                            // Must not steal keyboard focus on mouse-down — that would trigger the
+                            // exit-on-keyboard-focus-loss path (auto-save only) before Click's forced save.
+                            Focusable = false,
                         };
 
-                        // Add click handler for Done button
+                        // Add click handler for Done button: exit edit mode directly (saves + restores
+                        // visuals) rather than via focus movement, which is unreliable on this window.
                         doneButton.Click += (ds, de) => {
-							// Use fresh frame for saving here too
-							var currentFrame = Framemanager.GetFrameData().FirstOrDefault(f => f.Id?.ToString() == frameId) ?? frame;
-                            SaveNoteContent(currentFrame, noteTextBox.Text);
-
+                            exitEditMode(true);
                             var parentWindow = FindParentWindow(noteTextBox);
                             if (parentWindow != null) parentWindow.Focus();
-
-                            doneButton.Visibility = Visibility.Collapsed;
                         };
 
                         // Add button logic (same as before)
@@ -379,11 +404,18 @@ namespace Desktop_Frames
                     }
                 };
 
-				// Handle focus loss - restore frame background
-				noteTextBox.LostFocus += (s, e) =>
+                noteTextBox.GotFocus += (s, e) => enterEditMode();
+
+                // Leaving edit mode: save + restore visuals + re-enable focus prevention. Named (not just
+                // a LostFocus handler) so the content-lock can force it directly even when focus never
+                // actually leaves the box. forceSave commits the text even if auto-save is disabled.
+                exitEditMode = (forceSave) =>
                 {
+                    if (!inEditMode) return;
+                    inEditMode = false;
+
                     LogManager.Log(LogManager.LogLevel.Debug, LogManager.LogCategory.FrameCreation,
-                        "TextBox focus lost - restoring background");
+                        "TextBox exiting edit mode - restoring background");
 
                     // --- FIX START: Get Fresh Data ---
                     var freshFrame = Framemanager.GetFrameData().FirstOrDefault(f => f.Id?.ToString() == frameId) ?? frame;
@@ -404,7 +436,7 @@ namespace Desktop_Frames
 
 
                     autoSaveTimer.Stop();
-                    if (!SettingsManager.DisableNoteAutoSave)
+                    if (forceSave || !SettingsManager.DisableNoteAutoSave)
                     {
                         SaveNoteContent(freshFrame, noteTextBox.Text);
                     }
@@ -414,6 +446,10 @@ namespace Desktop_Frames
                     {
                         naw.EnableFocusPrevention(true);
                     }
+
+                    // Editing is over once focus leaves — hide the Done button (also covers locking mid-edit,
+                    // which blurs the note without clicking Done).
+                    if (doneButton != null) doneButton.Visibility = Visibility.Collapsed;
 
                     System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
                         System.Windows.Threading.DispatcherPriority.Background,
@@ -438,6 +474,15 @@ namespace Desktop_Frames
                         })
                     );
                 };
+
+                noteTextBox.LostFocus += (s, e) => exitEditMode(false);
+                // Logical focus can stay glued to the box on a non-activating window; keyboard focus loss
+                // (fires when the HWND loses Win32 focus, e.g. clicking another app) is the reliable signal.
+                noteTextBox.LostKeyboardFocus += (s, e) => exitEditMode(false);
+
+                // Registered so ApplyContentLock can force a mid-edit note out of edit mode when locking,
+                // independent of focus events.
+                _editModeExits.Add(noteTextBox, () => exitEditMode(true));
 
                 noteTextBox.TextChanged += (s, e) =>
                 {
@@ -487,6 +532,20 @@ namespace Desktop_Frames
         /// Used by: Auto-save timer and focus lost events
         /// Category: Data Persistence
         /// </summary>
+        // Per-note "force exit edit mode" hooks (saves text + restores visuals + re-enables focus
+        // prevention). Weak table so entries die with their TextBox.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextBox, Action> _editModeExits = new();
+
+        /// <summary>Forces a note out of edit mode (saving its text) regardless of focus state — used by
+        /// the content-lock, since focus events don't fire reliably on non-activating windows.</summary>
+        public static void ForceEndEdit(TextBox noteTextBox)
+        {
+            if (noteTextBox != null && _editModeExits.TryGetValue(noteTextBox, out var exit))
+            {
+                try { exit(); } catch { }
+            }
+        }
+
         private static void SaveNoteContent(dynamic frame, string content)
         {
             try
