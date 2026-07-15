@@ -302,7 +302,7 @@ namespace Desktop_Frames
                 string menuSymbol = menuSymbols[menuIdx];
                 // Pin glyph is drawn in the Segoe Fluent icon font (same as FrameManager) — must match, or
                 // this refresh would clobber the title-bar pin with a wrong/stale glyph.
-                string lockSymbol = Framemanager.PinGlyph(SettingsManager.LockIcon);
+                string lockSymbol = Framemanager.PosLockGlyph(SettingsManager.LockIcon);
                 double iconOpacity = (double)SettingsManager.MenuTintValue / 100.0;
 
                 // Get Data List Once
@@ -400,6 +400,36 @@ namespace Desktop_Frames
                         }
                         lockIcon.Opacity = isLocked ? 1.0 : iconOpacity;
                         lockIcon.Foreground = isLocked ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
+                    }
+
+                    // Content-lock padlock: same engaged/disengaged cue, driven by ContentLocked.
+                    var cLockIcon = FindChild<TextBlock>(win, "FrameContentLockIcon");
+                    if (cLockIcon != null && FrameData != null)
+                    {
+                        bool cLocked = Framemanager.IsContentLocked(FrameData);
+                        cLockIcon.BeginAnimation(UIElement.OpacityProperty, null);
+                        cLockIcon.Opacity = cLocked ? 1.0 : iconOpacity;
+                        cLockIcon.Foreground = cLocked ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
+                    }
+
+                    // Keep-on-top pin: same engaged/disengaged cue, driven by AlwaysOnTop.
+                    var onTopIcon = FindChild<TextBlock>(win, "FrameOnTopIcon");
+                    if (onTopIcon != null)
+                    {
+                        onTopIcon.FontFamily = Framemanager.GlyphIconFont;
+                        onTopIcon.Text = Framemanager.OnTopGlyph;
+                        onTopIcon.BeginAnimation(UIElement.OpacityProperty, null);
+
+                        bool isOnTop = false;
+                        if (FrameData != null)
+                        {
+                            string onTopStr = null;
+                            if (FrameData is Newtonsoft.Json.Linq.JObject j2) onTopStr = j2["AlwaysOnTop"]?.ToString();
+                            else try { onTopStr = FrameData.AlwaysOnTop?.ToString(); } catch { }
+                            isOnTop = onTopStr?.ToLower() == "true";
+                        }
+                        onTopIcon.Opacity = isOnTop ? 1.0 : iconOpacity;
+                        onTopIcon.Foreground = isOnTop ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
                     }
 
                     // 5. Update Note Text Contrast (if applicable)

@@ -398,8 +398,8 @@ namespace Desktop_Frames
             CreateIconRadioButtonGroup(menuIconPanel, "MenuIconGroup", new Dictionary<string, int> { { "♥", 0 }, { "☰", 1 }, { "≣", 2 }, { "𓃑", 3 } }, SettingsManager.MenuIcon);
 
             StackPanel lockIconPanel = new StackPanel();
-            lockIconPanel.Children.Add(new TextBlock { Text = "Pin Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
-            CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { Framemanager.PinGlyphMap, 0 }, { Framemanager.PinGlyphPush, 1 } }, SettingsManager.LockIcon <= 1 ? SettingsManager.LockIcon : 0, "Segoe Fluent Icons, Segoe MDL2 Assets");
+            lockIconPanel.Children.Add(new TextBlock { Text = "Position Lock Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
+            CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { Framemanager.PosLockGlyph(0), 0 }, { Framemanager.PosLockGlyph(1), 1 } }, SettingsManager.LockIcon <= 1 ? SettingsManager.LockIcon : 0, "Segoe Fluent Icons, Segoe MDL2 Assets");
 
             // Filter/search icon (frame title bar): magnifier / funnel / boxed magnifier.
             StackPanel filterIconPanel = new StackPanel();

@@ -4677,7 +4677,7 @@ namespace Desktop_Frames
             // "Pin" = position lock (prevents the frame being moved/resized). Rendered with the Segoe
             // Fluent icon font so it looks identical here and in the Options preview (no colour-emoji
             // fallback, no missing-glyph boxes) and honours Foreground for the pinned/unpinned cue.
-            string LockSymbol = PinGlyph(SettingsManager.LockIcon);
+            string LockSymbol = PosLockGlyph(SettingsManager.LockIcon);
 
             TextBlock lockIcon = new TextBlock
             {
@@ -4690,7 +4690,7 @@ namespace Desktop_Frames
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center, // centre-align to match the filter/content-lock icons (glyph bearings differ)
                 Cursor = Cursors.Hand,
-                ToolTip = frame.IsLocked?.ToString().ToLower() == "true" ? "Frame is pinned (click to unpin)" : "Frame is unpinned (click to pin)",
+                ToolTip = frame.IsLocked?.ToString().ToLower() == "true" ? "Position locked (click to allow moving/resizing)" : "Click to lock position/size",
                 Opacity = (double)SettingsManager.MenuTintValue / 100 // 0.3 // Lower tint by default
             };
 
@@ -4781,10 +4781,20 @@ namespace Desktop_Frames
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Col 1: Title
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });                      // Col 2: Filter Icon (Auto width)
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22, GridUnitType.Pixel) }); // Col 3: Content-lock button
-            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30, GridUnitType.Pixel) }); // Col 4: Pin Icon
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22, GridUnitType.Pixel) }); // Col 4: Position-lock button
+            titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30, GridUnitType.Pixel) }); // Col 5: Keep-on-top pin
                                                                                                                       // End of ctrl+click handler
             ContextMenu CnMnFramemanager = new ContextMenu();
             DarkMenuTheme.Apply(CnMnFramemanager); // follow OS dark mode (implicit styles cascade to items added later)
+
+            // UpdateFrameProperty REPLACES the frame object in FrameData (JObject.FromObject), so the
+            // closure-captured `frame` can go stale after any property update. Menu handlers must always
+            // re-resolve the live object by Id before reading or writing frame state.
+            dynamic LiveMenuFrame()
+            {
+                try { return FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frame.Id?.ToString()) ?? frame; }
+                catch { return frame; }
+            }
 
             // Rename (same inline title edit as Ctrl+click the title bar).
             MenuItem miRenameFrame = new MenuItem { Header = "Rename Frame" };
@@ -4793,38 +4803,38 @@ namespace Desktop_Frames
             CnMnFramemanager.Items.Add(new Separator());
 
             // --- Content lock (prevents changes): Note = read-only, Data/Portal = no drops,
-            //     Image = no set/clear/paste. Separate from the position "Pin" (title-bar pin icon). ---
+            //     Image = no set/clear/paste. Separate from the position lock (title-bar icon). ---
             MenuItem miContentLock = new MenuItem { Header = "Lock (prevent changes)", IsCheckable = true, IsChecked = IsContentLocked(frame) };
-            miContentLock.Click += (s, e) => SetContentLocked(frame, miContentLock.IsChecked);
+            miContentLock.Click += (s, e) => SetContentLocked(LiveMenuFrame(), miContentLock.IsChecked);
             CnMnFramemanager.Items.Add(miContentLock);
             CnMnFramemanager.Items.Add(new Separator());
-            CnMnFramemanager.Opened += (s, e) => miContentLock.IsChecked = IsContentLocked(frame);
+            CnMnFramemanager.Opened += (s, e) => miContentLock.IsChecked = IsContentLocked(LiveMenuFrame());
 
             // --- Image frame controls (set / clear / copy) for the single displayed image. ---
             if (frame.ItemsType?.ToString() == "Image")
             {
                 var miPasteImg = new MenuItem { Header = "Paste image" };
-                miPasteImg.Click += (s, e) => ImageFramemanager.HandlePaste(frame);
+                miPasteImg.Click += (s, e) => ImageFramemanager.HandlePaste(LiveMenuFrame());
                 CnMnFramemanager.Items.Add(miPasteImg);
 
                 var miSetImg = new MenuItem { Header = "Set image from file..." };
                 miSetImg.Click += (s, e) =>
                 {
                     var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp;*.tif;*.tiff;*.ico|All files|*.*" };
-                    if (dlg.ShowDialog() == true) ImageFramemanager.SetFromFile(frame, dlg.FileName);
+                    if (dlg.ShowDialog() == true) ImageFramemanager.SetFromFile(LiveMenuFrame(), dlg.FileName);
                 };
                 CnMnFramemanager.Items.Add(miSetImg);
 
                 var miClearImg = new MenuItem { Header = "Clear image" };
-                miClearImg.Click += (s, e) => ImageFramemanager.ClearImage(frame);
+                miClearImg.Click += (s, e) => ImageFramemanager.ClearImage(LiveMenuFrame());
                 CnMnFramemanager.Items.Add(miClearImg);
 
                 var miCopyImg = new MenuItem { Header = "Copy image" };
-                miCopyImg.Click += (s, e) => ImageFramemanager.CopyToClipboard(frame);
+                miCopyImg.Click += (s, e) => ImageFramemanager.CopyToClipboard(LiveMenuFrame());
                 CnMnFramemanager.Items.Add(miCopyImg);
 
                 var miSaveImg = new MenuItem { Header = "Save image as..." };
-                miSaveImg.Click += (s, e) => ImageFramemanager.SaveAs(frame);
+                miSaveImg.Click += (s, e) => ImageFramemanager.SaveAs(LiveMenuFrame());
                 CnMnFramemanager.Items.Add(miSaveImg);
 
                 CnMnFramemanager.Items.Add(new Separator());
@@ -4865,14 +4875,24 @@ namespace Desktop_Frames
             };
             CnMnFramemanager.Items.Add(miAutoRoll);
 
-            // --- NEW: Always On Top Menu Item ---
+            // --- NEW: Always On Top Menu Item (kept in sync with the title-bar on-top pin) ---
+            // NOTE: UpdateFrameProperty REPLACES the frame object in FrameData (JObject.FromObject), so
+            // the closure-captured `frame` goes stale after any property update — always re-resolve the
+            // live object by Id before reading or writing state here.
             MenuItem miAlwaysOnTop = new MenuItem { Header = "Always on top", IsCheckable = true };
             miAlwaysOnTop.IsChecked = frame.AlwaysOnTop?.ToString().ToLower() == "true";
             miAlwaysOnTop.Click += (s, e) =>
             {
-                UpdateFrameProperty(frame, "AlwaysOnTop", miAlwaysOnTop.IsChecked.ToString().ToLower(), $"Set Always on Top to {miAlwaysOnTop.IsChecked}");
+                dynamic lfTop = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frame.Id?.ToString()) ?? frame;
+                UpdateFrameProperty(lfTop, "AlwaysOnTop", miAlwaysOnTop.IsChecked.ToString().ToLower(), $"Set Always on Top to {miAlwaysOnTop.IsChecked}");
+                RefreshOnTopVisual(frame.Id?.ToString());
             };
             CnMnFramemanager.Items.Add(miAlwaysOnTop);
+            CnMnFramemanager.Opened += (s, e) =>
+            {
+                dynamic lfTop = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frame.Id?.ToString());
+                miAlwaysOnTop.IsChecked = lfTop?.AlwaysOnTop?.ToString().ToLower() == "true";
+            };
 
             CnMnFramemanager.Items.Add(new Separator());
             // --------------------------------
@@ -5676,7 +5696,7 @@ namespace Desktop_Frames
             }
             Label titlelabel = new Label
             {
-                Content = BuildTitleContent(frame.Title.ToString(), GetFrameHotkeyDisplay(frame), titleTextBrush, titleFontSize, frame.ItemsType?.ToString(), GlyphTooltipForFrame(frame)),
+                Content = BuildTitleContent(frame.Title.ToString(), GetTitleSuffix(frame), titleTextBrush, titleFontSize, frame.ItemsType?.ToString(), GlyphTooltipForFrame(frame)),
                 Foreground = titleTextBrush, // Changed from hardcoded White
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -6193,7 +6213,7 @@ namespace Desktop_Frames
                 }
 
                 // Update UI (keep the hotkey suffix, if any)
-                titlelabel.Content = BuildTitleContent(finalTitle, GetFrameHotkeyDisplay(frame), titleTextBrush, titleFontSize, frame.ItemsType?.ToString(), GlyphTooltipForFrame(frame));
+                titlelabel.Content = BuildTitleContent(finalTitle, GetTitleSuffix(frame), titleTextBrush, titleFontSize, frame.ItemsType?.ToString(), GlyphTooltipForFrame(frame));
                 win.Title = finalTitle;
                 titletb.Visibility = Visibility.Collapsed;
                 titlelabel.Visibility = Visibility.Visible;
@@ -6328,33 +6348,76 @@ namespace Desktop_Frames
             //// --- STEP 4 END ---
 
 
-            // Move lockIcon to the Grid
-            Grid.SetColumn(lockIcon, 4); // Pin icon (rightmost)
+            // Move lockIcon (position lock) to the Grid
+            Grid.SetColumn(lockIcon, 4);
             Grid.SetRow(lockIcon, 0);
             titleGrid.Children.Add(lockIcon);
 
+            // Keep-on-top pin (rightmost): toggles the AlwaysOnTop frame property (same as the context
+            // menu's "Always on top"). DeepPink + full opacity when engaged, muted white when not.
+            bool onTopNow = frame.AlwaysOnTop?.ToString().ToLower() == "true";
+            TextBlock onTopIcon = new TextBlock
+            {
+                Name = "FrameOnTopIcon",
+                Text = OnTopGlyph,
+                FontFamily = GlyphIconFont,
+                FontSize = 14,
+                Foreground = onTopNow ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White,
+                Margin = new Thickness(0, 1, 6, 0), // centred in its column; slight top nudge (the diagonal pin's visual mass sits high)
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Cursor = Cursors.Hand,
+                ToolTip = onTopNow ? "Kept on top (click to release)" : "Click to keep this frame on top",
+                Opacity = onTopNow ? 1.0 : (double)SettingsManager.MenuTintValue / 100
+            };
+            onTopIcon.MouseEnter += (s, e) => { onTopIcon.BeginAnimation(UIElement.OpacityProperty, null); onTopIcon.Opacity = 1.0; };
+            onTopIcon.MouseLeave += (s, e) =>
+            {
+                // Engaged rests bright, disengaged rests dim (same cue as the position lock).
+                bool on = onTopIcon.Foreground == System.Windows.Media.Brushes.DeepPink;
+                var fb = new DoubleAnimation { From = 1.0, To = on ? 1.0 : (double)SettingsManager.MenuTintValue / 100, Duration = TimeSpan.FromMilliseconds(300), BeginTime = TimeSpan.FromMilliseconds(800) };
+                onTopIcon.BeginAnimation(UIElement.OpacityProperty, fb);
+            };
+            onTopIcon.MouseLeftButtonDown += (s, e) =>
+            {
+                if (e.ChangedButton != MouseButton.Left) return;
+                e.Handled = true;
+                var w = FindVisualParent<NonActivatingWindow>(onTopIcon);
+                var cf = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == w?.Tag?.ToString());
+                if (cf == null) return;
+                bool now = !(cf.AlwaysOnTop?.ToString().ToLower() == "true");
+                UpdateFrameProperty(cf, "AlwaysOnTop", now.ToString().ToLower(), $"Set Always on Top to {now}");
+                ApplyOnTopVisual(onTopIcon, now);
+            };
+            Grid.SetColumn(onTopIcon, 5);
+            Grid.SetRow(onTopIcon, 0);
+            Panel.SetZIndex(onTopIcon, 100);
+            titleGrid.Children.Add(onTopIcon);
+
             // Content-lock button (padlock): toggles ContentLocked (prevents changes). Closed padlock =
-            // locked, open padlock = unlocked — the glyph swap is the state cue. Drawn in the Segoe
-            // Fluent icon font so it reads unmistakably as a lock, distinct from the Pin. Separate from
-            // the Pin (position).
+            // locked, open padlock = unlocked, and — matching the position-lock/on-top cues — locked
+            // rests DeepPink + full opacity, unlocked rests muted white.
+            bool cLockNow = IsContentLocked(frame);
             TextBlock contentLockIcon = new TextBlock
             {
                 Name = "FrameContentLockIcon",
-                Text = IsContentLocked(frame) ? LockGlyphClosed : LockGlyphOpen,
+                Text = cLockNow ? LockGlyphClosed : LockGlyphOpen,
                 FontFamily = GlyphIconFont,
                 FontSize = 14,
-                Foreground = System.Windows.Media.Brushes.White,
+                Foreground = cLockNow ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White,
                 Margin = new Thickness(0, 0, 2, 0),
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center, // centre-align to match the filter/pin icons
                 Cursor = Cursors.Hand,
-                ToolTip = IsContentLocked(frame) ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)",
-                Opacity = (double)SettingsManager.MenuTintValue / 100
+                ToolTip = cLockNow ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)",
+                Opacity = cLockNow ? 1.0 : (double)SettingsManager.MenuTintValue / 100
             };
             contentLockIcon.MouseEnter += (s, e) => { contentLockIcon.BeginAnimation(UIElement.OpacityProperty, null); contentLockIcon.Opacity = 1.0; };
             contentLockIcon.MouseLeave += (s, e) =>
             {
-                var fb = new DoubleAnimation { From = 1.0, To = (double)SettingsManager.MenuTintValue / 100, Duration = TimeSpan.FromMilliseconds(300), BeginTime = TimeSpan.FromMilliseconds(800) };
+                // Locked rests bright (like the pinned pin); unlocked fades back to the muted tint.
+                bool lockedNow = contentLockIcon.Foreground == System.Windows.Media.Brushes.DeepPink;
+                var fb = new DoubleAnimation { From = 1.0, To = lockedNow ? 1.0 : (double)SettingsManager.MenuTintValue / 100, Duration = TimeSpan.FromMilliseconds(300), BeginTime = TimeSpan.FromMilliseconds(800) };
                 contentLockIcon.BeginAnimation(UIElement.OpacityProperty, fb);
             };
             contentLockIcon.MouseLeftButtonDown += (s, e) =>
@@ -6364,9 +6427,7 @@ namespace Desktop_Frames
                 var cf = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == w?.Tag?.ToString());
                 if (cf == null) return;
                 bool now = !IsContentLocked(cf);
-                SetContentLocked(cf, now);
-                contentLockIcon.Text = now ? LockGlyphClosed : LockGlyphOpen;
-                contentLockIcon.ToolTip = now ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)";
+                SetContentLocked(cf, now); // ApplyContentLock also restyles this button (glyph/colour/opacity)
                 e.Handled = true;
             };
             Grid.SetColumn(contentLockIcon, 3);
@@ -8035,10 +8096,12 @@ namespace Desktop_Frames
             newframeDict["DetailsGroup"] = "None";
             newframeDict["CustomTint"] = "";
             newframeDict["DetailsStriped"] = ""; // "" = follow global, "On"/"Off" = per-frame override
-            // Content lock: Image frames locked by default (set-once); Note/Data/Portal editable by default.
-            newframeDict["ContentLocked"] = itemsType == "Image" ? "true" : "false";
+            // Content lock: only Portals locked by default (a drop into a portal copies real files);
+            // everything else starts unlocked so it can be filled straight away.
+            newframeDict["ContentLocked"] = itemsType == "Portal" ? "true" : "false";
             newframeDict["ImageFile"] = "";         // Image frames: the single displayed image (empty = none)
             newframeDict["ImageLinked"] = "false";  // true = link to original file, false = copied into the frame
+            newframeDict["ImageSource"] = "";       // original source path (title-bar display; empty for pasted images)
             newframeDict["HotkeyVk"] = "0";
             newframeDict["HotkeyMods"] = "0";
             // TABS FEATURE: Initialize tab properties for new frames
@@ -8212,7 +8275,7 @@ namespace Desktop_Frames
                 // Brightness cue (works for emoji pins too): pinned = full/solid, unpinned = dim.
                 lockIcon.BeginAnimation(UIElement.OpacityProperty, null); // clear any running fade
                 lockIcon.Opacity = isLocked ? 1.0 : (double)SettingsManager.MenuTintValue / 100;
-                lockIcon.ToolTip = isLocked ? "Frame is pinned (click to unpin)" : "Frame is unpinned (click to pin)";
+                lockIcon.ToolTip = isLocked ? "Position locked (click to allow moving/resizing)" : "Click to lock position/size";
 
                 // Find the NonActivatingWindow
                 NonActivatingWindow win = FindVisualParent<NonActivatingWindow>(lockIcon);
@@ -9492,7 +9555,8 @@ namespace Desktop_Frames
         public static bool IsContentLocked(dynamic frame)
         {
             try { string v = frame.ContentLocked?.ToString(); if (!string.IsNullOrEmpty(v)) return v.ToLower() != "false"; } catch { }
-            try { return frame.ItemsType?.ToString() == "Image"; } catch { return false; }
+            // Key missing (old configs): only Portals default to locked — a drop into one copies real files.
+            try { return frame.ItemsType?.ToString() == "Portal"; } catch { return false; }
         }
 
         public static void SetContentLocked(dynamic frame, bool locked)
@@ -9519,10 +9583,15 @@ namespace Desktop_Frames
                 var win = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().FirstOrDefault(w => w.Tag?.ToString() == fid);
 
                 // Keep the title-bar content-lock button in sync (e.g. toggled via the context menu).
+                // Locked = closed padlock, DeepPink, full opacity; unlocked = open padlock, muted white —
+                // the same engaged/disengaged cue as the position-lock and on-top pins.
                 if (win != null && FindDescendantByName(win, "FrameContentLockIcon") is TextBlock icon)
                 {
                     icon.Text = locked ? LockGlyphClosed : LockGlyphOpen;
                     icon.ToolTip = locked ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)";
+                    icon.Foreground = locked ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
+                    icon.BeginAnimation(UIElement.OpacityProperty, null);
+                    icon.Opacity = locked ? 1.0 : (double)SettingsManager.MenuTintValue / 100;
                 }
 
                 if (type == "Image") { ImageFramemanager.Refresh(frame); return; }
@@ -9541,6 +9610,34 @@ namespace Desktop_Frames
                     }
                 }
                 // Data/Portal: enforced at drop time (see win.Drop).
+            }
+            catch { }
+        }
+
+        /// <summary>Applies the keep-on-top state cue to the title-bar pin: DeepPink + bright when
+        /// engaged, muted white when not.</summary>
+        private static void ApplyOnTopVisual(TextBlock icon, bool on)
+        {
+            if (icon == null) return;
+            icon.Foreground = on ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
+            icon.BeginAnimation(UIElement.OpacityProperty, null);
+            icon.Opacity = on ? 1.0 : (double)SettingsManager.MenuTintValue / 100;
+            icon.ToolTip = on ? "Kept on top (click to release)" : "Click to keep this frame on top";
+        }
+
+        /// <summary>Syncs a frame's title-bar on-top pin with its AlwaysOnTop property (e.g. after the
+        /// context menu toggles it). Takes the Id and resolves the LIVE frame — UpdateFrameProperty
+        /// replaces frame objects in FrameData, so captured references go stale.</summary>
+        public static void RefreshOnTopVisual(string frameId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(frameId)) return;
+                dynamic live = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frameId);
+                if (live == null) return;
+                var win = System.Windows.Application.Current.Windows.OfType<NonActivatingWindow>().FirstOrDefault(w => w.Tag?.ToString() == frameId);
+                if (win != null && FindDescendantByName(win, "FrameOnTopIcon") is TextBlock icon)
+                    ApplyOnTopVisual(icon, live.AlwaysOnTop?.ToString().ToLower() == "true");
             }
             catch { }
         }
@@ -9569,12 +9666,14 @@ namespace Desktop_Frames
         public static readonly System.Windows.Media.FontFamily GlyphIconFont =
             new System.Windows.Media.FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
 
-        // Pin styles (position lock). 0 = map/location pin, 1 = pushpin. Older configs stored 0-3 emoji
-        // indices; anything out of range collapses to the map pin.
-        public const string PinGlyphMap = "";   // Location  (teardrop map pin)
-        public const string PinGlyphPush = "";  // Pinned    (diagonal pushpin)
-        public static string PinGlyph(int style) => style == 1 ? PinGlyphPush : PinGlyphMap;
-        public const int PinStyleCount = 2;
+        // Position-lock (prevents moving/resizing the frame) icon styles. 0 = four-way move arrows
+        // (the thing being locked), 1 = anchor-point diamond. Out-of-range collapses to the arrows.
+        public const string PosLockGlyphMove = "";   // four-way move arrows
+        public const string PosLockGlyphAnchor = ""; // anchor-point diamond
+        public static string PosLockGlyph(int style) => style == 1 ? PosLockGlyphAnchor : PosLockGlyphMove;
+
+        // Keep-on-top toggle (drives the AlwaysOnTop frame property): the classic diagonal pushpin.
+        public const string OnTopGlyph = "";
 
         // Filter/search title-bar icon styles. 0 = magnifier (Search), 1 = funnel (Filter),
         // 2 = boxed magnifier (SearchApps). Out-of-range collapses to the magnifier.
@@ -9687,12 +9786,16 @@ namespace Desktop_Frames
             return sp;
         }
 
-        /// <summary>The glyph tooltip for a frame — the folder path for Portals, else null.</summary>
+        /// <summary>The glyph tooltip for a frame — the folder path for Portals, else null. (Image frames
+        /// show their file name/path on the hover toolbar instead — the title bar is drag territory.)</summary>
         private static string GlyphTooltipForFrame(dynamic frame)
         {
             try { if (frame?.ItemsType?.ToString() == "Portal") return frame.Path?.ToString(); } catch { }
             return null;
         }
+
+        /// <summary>The dim bracketed title suffix (currently just the focus hotkey).</summary>
+        private static string GetTitleSuffix(dynamic frame) => GetFrameHotkeyDisplay(frame);
 
         /// <summary>Re-renders a frame's title (e.g. after its hotkey changes) so the suffix updates live.</summary>
         public static void RefreshFrameTitle(string frameId)
@@ -9703,7 +9806,7 @@ namespace Desktop_Frames
                 dynamic live = FrameDataManager.FrameData.FirstOrDefault(f => f.Id?.ToString() == frameId);
                 if (live == null) return;
                 string title = live.Title?.ToString() ?? "";
-                t.Label.Content = BuildTitleContent(title, GetFrameHotkeyDisplay(live), t.Brush, t.FontSize, live.ItemsType?.ToString(), GlyphTooltipForFrame(live));
+                t.Label.Content = BuildTitleContent(title, GetTitleSuffix(live), t.Brush, t.FontSize, live.ItemsType?.ToString(), GlyphTooltipForFrame(live));
             }
             catch { }
         }
