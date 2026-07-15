@@ -311,6 +311,7 @@ namespace Desktop_Frames
             // --- NEW: Frames behavior ---
             CreateSectionHeader(c, "Frames", ColorStyle);
             CreateCheckBox(c, "Enable Show/Hide all frames hotkey", "EnableToggleFramesHotkey", SettingsManager.EnableToggleFramesHotkey);
+            CreateCheckBox(c, "Double-click a frame to open search", "SearchOnDoubleClick", SettingsManager.SearchOnDoubleClick);
             CreateCheckBox(c, "Striped rows in Portal Details view", "PortalDetailsStriped", SettingsManager.PortalDetailsStriped);
 
             // Image frames: how dragged/added image files are stored.
@@ -398,7 +399,7 @@ namespace Desktop_Frames
 
             StackPanel lockIconPanel = new StackPanel();
             lockIconPanel.Children.Add(new TextBlock { Text = "Pin Icon", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 0) });
-            CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { "📌", 0 }, { "🖈", 1 }, { "📍", 2 }, { "🧷", 3 } }, SettingsManager.LockIcon);
+            CreateIconRadioButtonGroup(lockIconPanel, "LockIconGroup", new Dictionary<string, int> { { Framemanager.PinGlyphMap, 0 }, { Framemanager.PinGlyphPush, 1 } }, SettingsManager.LockIcon <= 1 ? SettingsManager.LockIcon : 0, "Segoe Fluent Icons, Segoe MDL2 Assets");
 
             Grid.SetColumn(menuIconPanel, 0);
             Grid.SetColumn(lockIconPanel, 1);
@@ -777,10 +778,10 @@ namespace Desktop_Frames
             p.Children.Add(g);
         }
 
-        private static void CreateIconRadioButtonGroup(StackPanel p, string gName, Dictionary<string, int> icons, int sel)
+        private static void CreateIconRadioButtonGroup(StackPanel p, string gName, Dictionary<string, int> icons, int sel, string fontFamily = "Segoe UI Symbol")
         {
             StackPanel sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(15, 5, 0, 15), Tag = gName };
-            foreach (var i in icons) sp.Children.Add(new RadioButton { Content = i.Key, Tag = i.Value, GroupName = gName, IsChecked = i.Value == sel, Margin = new Thickness(0, 0, 15, 0), FontSize = 16, FontFamily = new FontFamily("Segoe UI Symbol") });
+            foreach (var i in icons) sp.Children.Add(new RadioButton { Content = i.Key, Tag = i.Value, GroupName = gName, IsChecked = i.Value == sel, Margin = new Thickness(0, 0, 15, 0), FontSize = 16, FontFamily = new FontFamily(fontFamily) });
             p.Children.Add(sp);
         }
 
@@ -991,6 +992,7 @@ namespace Desktop_Frames
                         // NEW: Frames behavior
                         if (cb.Name == "EnableToggleFramesHotkey") SettingsManager.EnableToggleFramesHotkey = cb.IsChecked == true;
                         if (cb.Name == "PortalDetailsStriped") SettingsManager.PortalDetailsStriped = cb.IsChecked == true;
+                        if (cb.Name == "SearchOnDoubleClick") SettingsManager.SearchOnDoubleClick = cb.IsChecked == true;
                     }
                     else if (child is Grid g)
                     {

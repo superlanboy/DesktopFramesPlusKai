@@ -85,6 +85,8 @@ namespace Desktop_Frames
         public static bool ToggleDesktopIconsOnDoubleClick { get; set; } = false;
         // Global default for zebra striping in Portal Details view (per-frame override via DetailsStriped).
         public static bool PortalDetailsStriped { get; set; } = true;
+        // Double-clicking a frame's background opens the search window (results come from shortcut frames).
+        public static bool SearchOnDoubleClick { get; set; } = true;
         // System-tray icon glyph style: "Nested" | "Stacked" | "Grid" (theme-aware monochrome, drawn in GDI+).
         public static string TrayIconStyle { get; set; } = "Nested";
         // How dragged image files are added to Image frames: "Copy" (default) | "Reference" | "Ask".
@@ -261,6 +263,7 @@ namespace Desktop_Frames
                 ShowDesktopDot,
                 ToggleDesktopIconsOnDoubleClick,
                 PortalDetailsStriped,
+                SearchOnDoubleClick,
                 TrayIconStyle,
                 ImageDropMode,
                 // Idle Fade-Out
@@ -322,6 +325,7 @@ namespace Desktop_Frames
             try { MenuTintValue = data.MenuTintValue ?? 30; } catch { MenuTintValue = 30; }
             try { MenuIcon = data.MenuIcon ?? 0; } catch { MenuIcon = 0; }
             try { LockIcon = data.LockIcon ?? 0; } catch { LockIcon = 0; }
+            if (LockIcon < 0 || LockIcon > 1) LockIcon = 0; // old emoji configs stored 0-3; new scheme is 0=map pin, 1=pushpin
             try { SelectedColor = data.SelectedColor ?? "Gray"; } catch { SelectedColor = "Gray"; }
             try { IsLogEnabled = data.IsLogEnabled ?? false; } catch { IsLogEnabled = false; }
             try { SingleClickToLaunch = data.SingleClickToLaunch ?? true; } catch { SingleClickToLaunch = true; }
@@ -360,6 +364,7 @@ namespace Desktop_Frames
             try { ShowDesktopDot = data.ShowDesktopDot ?? true; } catch { ShowDesktopDot = true; }
             try { ToggleDesktopIconsOnDoubleClick = data.ToggleDesktopIconsOnDoubleClick ?? false; } catch { ToggleDesktopIconsOnDoubleClick = false; }
             try { PortalDetailsStriped = data.PortalDetailsStriped ?? true; } catch { PortalDetailsStriped = true; }
+            try { SearchOnDoubleClick = data.SearchOnDoubleClick ?? true; } catch { SearchOnDoubleClick = true; }
             try { TrayIconStyle = (string)(data.TrayIconStyle ?? "Nested"); } catch { TrayIconStyle = "Nested"; }
             try { ImageDropMode = (string)(data.ImageDropMode ?? "Copy"); } catch { ImageDropMode = "Copy"; }
 

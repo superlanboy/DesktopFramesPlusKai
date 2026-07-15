@@ -4553,7 +4553,7 @@ namespace Desktop_Frames
             // Add Double Click Handler
             cborder.MouseLeftButtonDown += (s, e) =>
             {
-                if (e.ClickCount == 2)
+                if (SettingsManager.SearchOnDoubleClick && e.ClickCount == 2)
                 {
                     SearchFormManager.ToggleSearch();
                     e.Handled = true;
@@ -4674,40 +4674,17 @@ namespace Desktop_Frames
             // Add a protection symbol in top-right corner
 
 
-            // "Pin" = position lock (prevents the frame being moved/resized). Icon options are pins.
-            string LockSymbol = "📌";
-
-            if (SettingsManager.LockIcon == 0)
-            {
-                LockSymbol = "📌";
-            }
-            else if (SettingsManager.LockIcon == 1)
-            {
-                LockSymbol = "🖈";
-            }
-            else if (SettingsManager.LockIcon == 2)
-            {
-                LockSymbol = "📍";
-            }
-            else if (SettingsManager.LockIcon == 3)
-            {
-                LockSymbol = "🧷";
-            }
-
-            //MessageBox.Show(SettingsManager.LockIcon +" " + LockSymbol.ToString());
-
+            // "Pin" = position lock (prevents the frame being moved/resized). Rendered with the Segoe
+            // Fluent icon font so it looks identical here and in the Options preview (no colour-emoji
+            // fallback, no missing-glyph boxes) and honours Foreground for the pinned/unpinned cue.
+            string LockSymbol = PinGlyph(SettingsManager.LockIcon);
 
             TextBlock lockIcon = new TextBlock
-           
             {
-
-                //     Text = "🔐",
-                //     Text = "🔑",
-                //     Text = "🔒",
-                //     Text = "🔓",
                 Name = "FrameLockIcon", // New! Name
-                Text = LockSymbol,//"🛡️",
-                                FontSize = 14,
+                Text = LockSymbol,
+                FontFamily = GlyphIconFont,
+                FontSize = 14,
                 Foreground = frame.IsLocked?.ToString().ToLower() == "true" ? System.Windows.Media.Brushes.Red : System.Windows.Media.Brushes.White,
                 Margin = new Thickness(0, 3, 2, 0), // Adjusted for top-right positioning
                 HorizontalAlignment = HorizontalAlignment.Right,
@@ -6355,12 +6332,15 @@ namespace Desktop_Frames
             Grid.SetRow(lockIcon, 0);
             titleGrid.Children.Add(lockIcon);
 
-            // Content-lock button (padlock): toggles ContentLocked (prevents changes). Closed 🔒 = locked,
-            // open 🔓 = unlocked — the glyph swap is the state cue. Separate from the Pin (position).
+            // Content-lock button (padlock): toggles ContentLocked (prevents changes). Closed padlock =
+            // locked, open padlock = unlocked — the glyph swap is the state cue. Drawn in the Segoe
+            // Fluent icon font so it reads unmistakably as a lock, distinct from the Pin. Separate from
+            // the Pin (position).
             TextBlock contentLockIcon = new TextBlock
             {
                 Name = "FrameContentLockIcon",
-                Text = IsContentLocked(frame) ? "🔒" : "🔓",
+                Text = IsContentLocked(frame) ? LockGlyphClosed : LockGlyphOpen,
+                FontFamily = GlyphIconFont,
                 FontSize = 13,
                 Foreground = System.Windows.Media.Brushes.White,
                 Margin = new Thickness(0, 3, 2, 0),
@@ -6384,7 +6364,7 @@ namespace Desktop_Frames
                 if (cf == null) return;
                 bool now = !IsContentLocked(cf);
                 SetContentLocked(cf, now);
-                contentLockIcon.Text = now ? "🔒" : "🔓";
+                contentLockIcon.Text = now ? LockGlyphClosed : LockGlyphOpen;
                 contentLockIcon.ToolTip = now ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)";
                 e.Handled = true;
             };
@@ -9540,7 +9520,7 @@ namespace Desktop_Frames
                 // Keep the title-bar content-lock button in sync (e.g. toggled via the context menu).
                 if (win != null && FindDescendantByName(win, "FrameContentLockIcon") is TextBlock icon)
                 {
-                    icon.Text = locked ? "🔒" : "🔓";
+                    icon.Text = locked ? LockGlyphClosed : LockGlyphOpen;
                     icon.ToolTip = locked ? "Content locked (click to allow changes)" : "Content unlocked (click to lock changes)";
                 }
 
@@ -9574,6 +9554,23 @@ namespace Desktop_Frames
         /// "[shortcut]" suffix when a focus hotkey is assigned.</summary>
         /// <summary>Title-bar type glyph (monochrome, so it takes the title colour). Portal is drawn as
         /// a vector spiral instead — see BuildTypeIcon.</summary>
+        // Windows icon font (Win11 "Segoe Fluent Icons", falling back to Win10 "Segoe MDL2 Assets").
+        // Used for the Pin and Content-lock title-bar glyphs so they render crisply and identically
+        // in the title bar and the Options preview, and take Foreground colour for state cues.
+        public static readonly System.Windows.Media.FontFamily GlyphIconFont =
+            new System.Windows.Media.FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
+
+        // Pin styles (position lock). 0 = map/location pin, 1 = pushpin. Older configs stored 0-3 emoji
+        // indices; anything out of range collapses to the map pin.
+        public const string PinGlyphMap = "";   // Location  (teardrop map pin)
+        public const string PinGlyphPush = "";  // Pinned    (diagonal pushpin)
+        public static string PinGlyph(int style) => style == 1 ? PinGlyphPush : PinGlyphMap;
+        public const int PinStyleCount = 2;
+
+        // Content lock (prevents changes). Closed padlock = locked, open padlock = unlocked.
+        public const string LockGlyphClosed = ""; // Lock
+        public const string LockGlyphOpen = "";   // Unlock
+
         private static string GlyphForType(string type) => type switch
         {
             "Note" => "✎",   // ✎ pencil

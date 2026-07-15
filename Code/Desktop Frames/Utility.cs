@@ -295,16 +295,14 @@ namespace Desktop_Frames
             {
                 // 1. Prepare Symbols
                 string[] menuSymbols = { "♥", "☰", "≣", "𓃑" };
-                string[] lockSymbols = { "🛡️", "🔑", "🔐", "🔒" };
 
                 int menuIdx = SettingsManager.MenuIcon;
                 if (menuIdx < 0 || menuIdx >= menuSymbols.Length) menuIdx = 0;
 
-                int lockIdx = SettingsManager.LockIcon;
-                if (lockIdx < 0 || lockIdx >= lockSymbols.Length) lockIdx = 0;
-
                 string menuSymbol = menuSymbols[menuIdx];
-                string lockSymbol = lockSymbols[lockIdx];
+                // Pin glyph is drawn in the Segoe Fluent icon font (same as FrameManager) — must match, or
+                // this refresh would clobber the title-bar pin with a wrong/stale glyph.
+                string lockSymbol = Framemanager.PinGlyph(SettingsManager.LockIcon);
                 double iconOpacity = (double)SettingsManager.MenuTintValue / 100.0;
 
                 // Get Data List Once
@@ -377,11 +375,12 @@ namespace Desktop_Frames
                     var lockIcon = FindChild<TextBlock>(win, "FrameLockIcon");
                     if (lockIcon != null)
                     {
+                        lockIcon.FontFamily = Framemanager.GlyphIconFont;
                         lockIcon.Text = lockSymbol;
                         lockIcon.BeginAnimation(UIElement.OpacityProperty, null);
-                        lockIcon.Opacity = iconOpacity;
 
-                        // Re-apply Lock Color (Red/White)
+                        // Pinned state cue must match UpdateLockState: pinned = DeepPink + full opacity,
+                        // unpinned = white + muted (Menu Tint).
                         bool isLocked = false;
                         if (FrameData != null)
                         {
@@ -390,7 +389,8 @@ namespace Desktop_Frames
                             else try { lockedStr = FrameData.IsLocked?.ToString(); } catch { }
                             isLocked = lockedStr?.ToLower() == "true";
                         }
-                        lockIcon.Foreground = isLocked ? System.Windows.Media.Brushes.Red : System.Windows.Media.Brushes.White;
+                        lockIcon.Opacity = isLocked ? 1.0 : iconOpacity;
+                        lockIcon.Foreground = isLocked ? System.Windows.Media.Brushes.DeepPink : System.Windows.Media.Brushes.White;
                     }
 
                     // 5. Update Note Text Contrast (if applicable)
